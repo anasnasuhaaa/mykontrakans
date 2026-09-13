@@ -15,6 +15,12 @@
 
 Stage 0 verification: `npm run lint`, `npm run typecheck`, and `npm run build` passed. Development server returned HTTP 200 on `/`. One dependency install hit ECONNRESET; retry succeeded.
 
+## Stage 1 — Database & core models
+
+Prisma schema, initial SQL migration, singleton Neon adapter, category/settings seed, optional administrator seed and `.env.example` added. Model includes database-backed sessions and rate-limit attempts alongside all required financial entities. Unique period, member/period, token and payment-income constraints preserve identity; relational deletes restrict financial history loss.
+
+`prisma validate` passed with a syntactically valid local placeholder URL (no database connection). `db:migrate` and `db:seed` were attempted and **blocked because DATABASE_URL is not configured** (Prisma P1012). No database was modified. Apply migration and seed after configuring a real Neon database.
+
 ## Verification policy
 
 Run lint, typecheck and production build before each stage commit. Add domain and integration tests as features become available. Record external checks honestly: a successful build is not proof of live Neon, email or storage connectivity. Never substitute mock production analytics or a fake payable QRIS.
