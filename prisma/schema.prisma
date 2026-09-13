@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  TREASURER
+  MEMBER
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum BillStatus {
+  UNPAID
+  PENDING_REVIEW
+  PAID
+  REJECTED
+}
+
+enum SubmissionStatus {
+  PENDING_REVIEW
+  PAID
+  REJECTED
+}
+
+model User {
+  id           String              @id @default(cuid())
+  name         String
+  email        String              @unique
+  passwordHash String?
+  role         UserRole            @default(MEMBER)
+  isActive     Boolean             @default(true)
+  activatedAt  DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  sessions     Session[]
+  onboarding   OnboardingToken?
+  bills        MemberBill[]
+  submissions  PaymentSubmission[] @relation("Submitter")
+  reviews      PaymentSubmission[] @relation("Reviewer")
+  transactions Transaction[]
+  auditLogs    AuditLog[]
+  periods      BillingPeriod[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AuthAttempt {
+  key       String   @id
+  count     Int      @default(1)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+model OnboardingToken {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model FinancialCategory {
+  id           String          @id @default(cuid())
+  name         String
+  type         TransactionType
+  isActive     Boolean         @default(true)
+  systemKey    String?         @unique
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  transactions Transaction[]
+
+  @@unique([name, type])
+}
+
+model BillingPeriod {
+  id              String       @id @default(cuid())
+  month           Int
+  year            Int
+  dueDate         DateTime     @db.Date
+  amountPerMember Int
+  createdById     String
+  createdBy       User         @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt       DateTime     @default(now())
+  bills           MemberBill[]
+
+  @@unique([year, month])
+}
+
+model MemberBill {
+  id              String              @id @default(cuid())
+  memberId        String
+  member          User                @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  billingPeriodId String
+  billingPeriod   BillingPeriod       @relation(fields: [billingPeriodId], references: [id], onDelete: Restrict)
+  amount          Int
+  status          BillStatus          @default(UNPAID)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  submissions     PaymentSubmission[]
+
+  @@unique([memberId, billingPeriodId])
+  @@index([billingPeriodId, status])
+}
+
+model PaymentSubmission {
+  id              String           @id @default(cuid())
+  billId          String
+  bill            MemberBill       @relation(fields: [billId], references: [id], onDelete: Restrict)
+  memberId        String
+  member          User             @relation("Submitter", fields: [memberId], references: [id], onDelete: Restrict)
+  evidencePath    String
+  evidenceType    String
+  status          SubmissionStatus @default(PENDING_REVIEW)
+  rejectionReason String?
+  reviewerId      String?
+  reviewer        User?            @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+  reviewedAt      DateTime?
+  createdAt       DateTime         @default(now())
+  transaction     Transaction?
+
+  @@index([billId, createdAt])
+  @@index([status, createdAt])
+}
+
+model Transaction {
+  id               String             @id @default(cuid())
+  type             TransactionType
+  categoryId       String
+  category         FinancialCategory  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  amount           Int
+  description      String
+  transactionDate  DateTime           @db.Date
+  createdById      String
+  createdBy        User               @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  relatedPaymentId String?            @unique
+  relatedPayment   PaymentSubmission? @relation(fields: [relatedPaymentId], references: [id], onDelete: Restrict)
+  receiptPath      String?
+  receiptType      String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([transactionDate, type])
+  @@index([categoryId])
+}
+
+model AppSetting {
+  id                String   @id @default("default")
+  houseName         String   @default("MyKontrakans")
+  monthlyDuesAmount Int      @default(100000)
+  monthlyDueDay     Int      @default(10)
+  recurringEnabled  Boolean  @default(false)
+  updatedAt         DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String
+  actorId    String
+  actor      User     @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+}
