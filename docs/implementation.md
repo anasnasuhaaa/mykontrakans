@@ -33,6 +33,10 @@ Admin-only member list/create/edit/disable, role-change confirmation, last-admin
 
 Browser installation hit ENOSPC on C:. Download stopped; use installed Chrome with temporary browser files on D: for later UI checks.
 
+## Stage 4 — Responsive shell
+
+Role-aware desktop sidebar and fixed mobile bottom navigation, safe-area padding, active routes, profile/logout access, one-click light/dark theme and keyboard skip link. Additional management destinations are linked as their ordered stages are implemented. Member and treasurer navigation do not expose admin user management.
+
 ## Verification policy
 
 Run lint, typecheck and production build before each stage commit. Add domain and integration tests as features become available. Record external checks honestly: a successful build is not proof of live Neon, email or storage connectivity. Never substitute mock production analytics or a fake payable QRIS.
