@@ -27,6 +27,12 @@ Credentials login with bcrypt, opaque hashed database sessions, HTTP-only/SameSi
 
 Verification: token/password unit tests pass (2); `/login` HTTP 200 and unauthenticated `/profile` HTTP 307. An initial Zod pipe ordering type/runtime error was fixed and checks rerun. Live login still requires seeded Neon database.
 
+## Stage 3 — Members & onboarding
+
+Admin-only member list/create/edit/disable, role-change confirmation, last-admin preservation and session revocation. Invitations support per-recipient results and resending; tokens are hashed, expire in 24 hours and are consumed atomically. Responsive escaped HTML/text Resend templates never include passwords. Notification failure does not reverse a saved member. Real email delivery remains unverified without credentials.
+
+Browser installation hit ENOSPC on C:. Download stopped; use installed Chrome with temporary browser files on D: for later UI checks.
+
 ## Verification policy
 
 Run lint, typecheck and production build before each stage commit. Add domain and integration tests as features become available. Record external checks honestly: a successful build is not proof of live Neon, email or storage connectivity. Never substitute mock production analytics or a fake payable QRIS.
