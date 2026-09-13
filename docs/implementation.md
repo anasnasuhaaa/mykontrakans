@@ -21,6 +21,12 @@ Prisma schema, initial SQL migration, singleton Neon adapter, category/settings 
 
 `prisma validate` passed with a syntactically valid local placeholder URL (no database connection). `db:migrate` and `db:seed` were attempted and **blocked because DATABASE_URL is not configured** (Prisma P1012). No database was modified. Apply migration and seed after configuring a real Neon database.
 
+## Stage 2 — Authentication
+
+Credentials login with bcrypt, opaque hashed database sessions, HTTP-only/SameSite cookies (Secure in production), logout/revocation, per-account database rate limiting, safe public-user selection and server RBAC helpers. Next.js `proxy.ts` provides optimistic redirects; protected pages independently authenticate. Login includes light/dark support and accessible pending/error feedback. Dashboard temporarily redirects to the functional profile until the analytics stage.
+
+Verification: token/password unit tests pass (2); `/login` HTTP 200 and unauthenticated `/profile` HTTP 307. An initial Zod pipe ordering type/runtime error was fixed and checks rerun. Live login still requires seeded Neon database.
+
 ## Verification policy
 
 Run lint, typecheck and production build before each stage commit. Add domain and integration tests as features become available. Record external checks honestly: a successful build is not proof of live Neon, email or storage connectivity. Never substitute mock production analytics or a fake payable QRIS.
