@@ -4,6 +4,8 @@ import { z } from "zod";
 export type ActionState = { success?: boolean; message?: string; details?: string[] };
 export type FormAction = (state: ActionState, data: FormData) => Promise<ActionState>;
 
+export const initialActionState: ActionState = {};
+
 export class BusinessError extends Error {}
 
 export function actionError(error: unknown): ActionState {

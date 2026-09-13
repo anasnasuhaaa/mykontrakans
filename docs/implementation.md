@@ -37,6 +37,38 @@ Browser installation hit ENOSPC on C:. Download stopped; use installed Chrome wi
 
 Role-aware desktop sidebar and fixed mobile bottom navigation, safe-area padding, active routes, profile/logout access, one-click light/dark theme and keyboard skip link. Additional management destinations are linked as their ordered stages are implemented. Member and treasurer navigation do not expose admin user management.
 
+## Stage 5 — Categories & settings
+
+Income/expense category CRUD, referenced/system category protection, inactive categories, audited settings for house name, dues and due day. MVP uses explicit generation; recurring automation remains disabled. Browser smoke on installed Chrome passed at 375/430/1440px with light/dark toggle, unauthenticated redirect and invalid onboarding feedback.
+
+## Stage 6 — Monthly billing
+
+Implemented monthly dues billing generation for all active members (`app/actions/billing.ts`, `components/billing/billing-generator.tsx`). Due dates are calculated and clamped to the last day of the month in Asia/Jakarta timezone. Bills page (`app/(app)/bills/page.tsx`) displays monthly period summaries, completion progress, personal member obligation card with dynamic due status badges (`getBillDisplayStatus`), and full member payment breakdown for Admin/Treasurer. Duplicate period generation is prevented at the database and application level.
+
+## Stage 7 — Member payment submission
+
+Implemented member payment submission workflow (`app/actions/payments.ts`, `components/payments/payment-submission-form.tsx`, `app/(app)/bills/[id]/pay/page.tsx`). Includes QRIS card, image file validation (JPG/PNG/WEBP, max 5 MB, non-empty), image preview, storage abstraction (`lib/storage.ts` supporting Vercel Blob and local fallback), email confirmation via Resend (`notifySafely`), and support for re-uploading rejected payment proofs.
+
+## Stage 8 — Payment review
+
+Implemented payment verification queue for Admin and Treasurer (`app/(app)/payments/review/page.tsx`, `components/payments/payment-reviewer.tsx`). Features modal image evidence preview, approve action (marks bill paid, creates corresponding income transaction with unique payment constraint, logs audit event, sends approval email), and reject action (requires mandatory rejection reason, logs audit event, sends rejection email with re-upload link).
+
+## Stage 9 — Income & expense management
+
+Implemented financial ledger transaction management (`app/actions/transactions.ts`, `components/finance/transaction-form.tsx`, `components/finance/transaction-list.tsx`, `app/(app)/transactions/page.tsx`, `app/(app)/history/page.tsx`). Computes live balance from transaction ledger `SUM(INCOME) - SUM(EXPENSE)` in `lib/finance.ts`. Supports manual income and operational expenses with category selection, date, notes, and optional receipt/nota attachment. History page provides full financial transparency for members alongside their personal payment history.
+
+## Stage 10 — Dashboard analytics
+
+Implemented comprehensive role-aware dashboard (`app/(app)/dashboard/page.tsx`, `components/dashboard/dashboard-charts.tsx`). Features global finance cards (current balance, this month's income & expense, unpaid dues count, pending reviews count), mobile-first personal bill obligation card with one-click payment, Recharts 6-month cash flow area chart, expense category donut breakdown, monthly payment completion progress bar, quick action shortcuts, and recent transaction stream.
+
+## Stage 11 — UX Polish & accessibility
+
+Polished responsive layouts, mobile thumb-friendly navigation with safe-area insets, skeletons during route navigation (`app/(app)/loading.tsx`), resilient technical error boundaries (`app/(app)/error.tsx`), custom 404 page (`app/not-found.tsx`), Sonner toast feedback configuration, consistent empty states across all screens, and accessible light/dark theme contrast.
+
+## Stage 12 — Production readiness
+
+Production-ready documentation written in `README.md`, strict TypeScript typechecking, unit test suite covering auth, tokens, finance validators, date logic, payment submissions, and review rules.
+
 ## Verification policy
 
 Run lint, typecheck and production build before each stage commit. Add domain and integration tests as features become available. Record external checks honestly: a successful build is not proof of live Neon, email or storage connectivity. Never substitute mock production analytics or a fake payable QRIS.

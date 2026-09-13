@@ -1,0 +1,56 @@
+import { requireUser, financeRoles } from "@/lib/auth/session";
+import { getDb } from "@/lib/db";
+import { PaymentReviewer } from "@/components/payments/payment-reviewer";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CheckCheck } from "lucide-react";
+
+export default async function PaymentReviewPage() {
+  await requireUser(financeRoles);
+
+  const db = getDb();
+  const pendingSubmissions = await db.paymentSubmission.findMany({
+    where: { status: "PENDING_REVIEW" },
+    orderBy: { createdAt: "asc" },
+    include: {
+      bill: {
+        include: {
+          billingPeriod: { select: { month: true, year: true } },
+          member: { select: { id: true, name: true, email: true } },
+        },
+      },
+    },
+  });
+
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="text-sm text-muted-foreground">Verifikasi Keuangan</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">Review Pembayaran</h1>
+            {pendingSubmissions.length > 0 && (
+              <Badge variant="destructive" className="rounded-full px-2.5">
+                {pendingSubmissions.length} antrean
+              </Badge>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {pendingSubmissions.length === 0 ? (
+        <Card className="rounded-2xl p-12 text-center">
+          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <CheckCheck className="size-6" />
+          </div>
+          <h2 className="text-xl font-semibold">Semua antrean bersih</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Tidak ada bukti transfer yang menunggu review saat ini.
+          </p>
+        </Card>
+      ) : (
+        <PaymentReviewer items={pendingSubmissions} />
+      )}
+    </div>
+  );
+}

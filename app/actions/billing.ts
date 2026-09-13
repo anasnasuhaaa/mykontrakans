@@ -1,0 +1,86 @@
+"use server";
+
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+import { requireUser, financeRoles } from "@/lib/auth/session";
+import { getDb } from "@/lib/db";
+import { actionError, BusinessError, type ActionState } from "@/lib/actions";
+import { getJakartaDate } from "@/lib/dates";
+
+const generateSchema = z.object({
+  year: z.coerce.number().int().min(2020).max(2100),
+  month: z.coerce.number().int().min(1).max(12),
+});
+
+export async function generateBillingPeriod(_state: ActionState, form: FormData): Promise<ActionState> {
+  const actor = await requireUser(financeRoles);
+  try {
+    const rawYear = form.get("year");
+    const rawMonth = form.get("month");
+    const nowJkt = getJakartaDate();
+    const year = rawYear ? generateSchema.shape.year.parse(rawYear) : nowJkt.getFullYear();
+    const month = rawMonth ? generateSchema.shape.month.parse(rawMonth) : nowJkt.getMonth() + 1;
+
+    const db = getDb();
+    const settings = (await db.appSetting.findUnique({ where: { id: "default" } })) || {
+      monthlyDuesAmount: 100000,
+      monthlyDueDay: 10,
+    };
+
+    // Calculate due date in Asia/Jakarta clamped to last day of month
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const clampedDay = Math.min(settings.monthlyDueDay, daysInMonth);
+    const dueDate = new Date(Date.UTC(year, month - 1, clampedDay, 12, 0, 0));
+
+    await db.$transaction(async (tx) => {
+      const existing = await tx.billingPeriod.findUnique({
+        where: { year_month: { year, month } },
+      });
+      if (existing) {
+        throw new BusinessError(`Tagihan untuk periode ${month}/${year} sudah pernah dibuat.`);
+      }
+
+      const activeMembers = await tx.user.findMany({
+        where: { isActive: true },
+        select: { id: true },
+      });
+
+      if (activeMembers.length === 0) {
+        throw new BusinessError("Tidak ada anggota aktif untuk dibuatkan tagihan.");
+      }
+
+      const period = await tx.billingPeriod.create({
+        data: {
+          year,
+          month,
+          dueDate,
+          amountPerMember: settings.monthlyDuesAmount,
+          createdById: actor.id,
+          bills: {
+            create: activeMembers.map((member) => ({
+              memberId: member.id,
+              amount: settings.monthlyDuesAmount,
+              status: "UNPAID",
+            })),
+          },
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: actor.id,
+          action: "BILLING_PERIOD_GENERATED",
+          entityType: "BillingPeriod",
+          entityId: period.id,
+          metadata: { year, month, memberCount: activeMembers.length },
+        },
+      });
+    }, { isolationLevel: "Serializable" });
+
+    revalidatePath("/bills");
+    revalidatePath("/dashboard");
+    return { success: true, message: `Tagihan periode ${month}/${year} berhasil dibuat.` };
+  } catch (error) {
+    return actionError(error);
+  }
+}
