@@ -10,7 +10,10 @@ export default async function PaymentReviewPage() {
 
   const db = getDb();
   const pendingSubmissions = await db.paymentSubmission.findMany({
-    where: { status: "PENDING_REVIEW" },
+    where: {
+      status: "PENDING_REVIEW",
+      bill: { member: { role: { not: "ADMIN" } } },
+    },
     orderBy: { createdAt: "asc" },
     include: {
       bill: {

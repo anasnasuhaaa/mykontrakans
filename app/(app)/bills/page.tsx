@@ -7,6 +7,7 @@ import { BillingGenerator } from "@/components/billing/billing-generator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Wallet, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
 
 export default async function BillsPage() {
@@ -21,8 +22,9 @@ export default async function BillsPage() {
     orderBy: [{ year: "desc" }, { month: "desc" }],
     include: {
       bills: {
+        where: { member: { role: { not: "ADMIN" } } },
         include: {
-          member: { select: { id: true, name: true, email: true } },
+          member: { select: { id: true, name: true, email: true, avatarUrl: true } },
           submissions: {
             orderBy: { createdAt: "desc" },
             take: 1,
@@ -132,29 +134,33 @@ export default async function BillsPage() {
                     </div>
                   )}
 
-                  {/* All member breakdown for Admin / Treasurer */}
-                  {isFinance && (
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-semibold text-muted-foreground">Daftar pembayaran anggota</h3>
-                      <div className="divide-y rounded-xl border bg-card">
-                        {period.bills.map((bill) => {
-                          const status = getBillDisplayStatus(bill.status, period.dueDate);
-                          return (
-                            <div key={bill.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                  {/* Shared payment transparency for every authenticated household member. */}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-muted-foreground">Status pembayaran seluruh anggota</h3>
+                    <div className="divide-y rounded-xl border bg-card">
+                      {period.bills.map((bill) => {
+                        const status = getBillDisplayStatus(bill.status, period.dueDate);
+                        return (
+                          <div key={bill.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <Avatar className="size-10">
+                                <AvatarImage src={bill.member.avatarUrl || undefined} alt={`Foto profil ${bill.member.name}`} className="object-cover" />
+                                <AvatarFallback className="font-semibold">{bill.member.name.slice(0, 1).toUpperCase()}</AvatarFallback>
+                              </Avatar>
                               <div className="min-w-0">
                                 <p className="font-medium leading-tight">{bill.member.name}</p>
                                 <p className="truncate text-xs text-muted-foreground">{bill.member.email}</p>
                               </div>
-                              <div className="flex items-center gap-3">
-                                <span className="text-sm font-medium">{formatRupiah(bill.amount)}</span>
-                                <Badge variant={status.variant}>{status.label}</Badge>
-                              </div>
                             </div>
-                          );
-                        })}
-                      </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium">{formatRupiah(bill.amount)}</span>
+                              <Badge variant={status.variant}>{status.label}</Badge>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             );

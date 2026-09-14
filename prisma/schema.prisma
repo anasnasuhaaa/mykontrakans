@@ -36,6 +36,7 @@ model User {
   name         String
   email        String              @unique
   passwordHash String?
+  avatarUrl    String?
   role         UserRole            @default(MEMBER)
   isActive     Boolean             @default(true)
   activatedAt  DateTime?

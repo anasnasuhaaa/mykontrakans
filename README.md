@@ -13,8 +13,8 @@
 
 - **Sistem Pembayaran & Tagihan Kas Bulanan:**
   - Pembuatan tagihan bulanan otomatis untuk seluruh anggota aktif dengan tanggal jatuh tempo fleksibel.
-  - Tampilan tagihan mobile-first dengan scan QRIS (`/public/qris.jpg`).
-  - Unggah screenshot bukti transfer (format JPG, PNG, WEBP maks. 5 MB) dengan preview instan.
+  - Tampilan tagihan mobile-first dengan scan dan download QRIS (`/public/qris.jpeg`).
+  - Unggah screenshot bukti transfer (format JPG, PNG, WEBP maks. 2 MB) dengan preview instan.
   - Alur verifikasi (Approve / Reject dengan alasan penolakan wajib) dan dukungan unggah ulang jika ditolak.
   - Notifikasi email otomatis via Resend (Undangan, Bukti Diterima, Disetujui, Perlu Diperbaiki).
 

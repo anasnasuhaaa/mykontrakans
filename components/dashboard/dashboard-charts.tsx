@@ -66,7 +66,7 @@ export function CashFlowAreaChart({ data }: { data: MonthlyFlow[] }) {
                   tick={{ fontSize: 11 }}
                 />
                 <Tooltip
-                  formatter={(val: any) => formatRupiah(Number(val) || 0)}
+                  formatter={(val: unknown) => formatRupiah(Number(val) || 0)}
                   contentStyle={{
                     backgroundColor: "var(--card)",
                     borderColor: "var(--border)",
@@ -138,7 +138,7 @@ export function ExpenseDonutChart({ data }: { data: CategoryExpense[] }) {
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(val: any) => formatRupiah(Number(val) || 0)}
+                  formatter={(val: unknown) => formatRupiah(Number(val) || 0)}
                   contentStyle={{
                     backgroundColor: "var(--card)",
                     borderColor: "var(--border)",

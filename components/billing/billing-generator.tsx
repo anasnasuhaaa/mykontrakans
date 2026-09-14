@@ -16,7 +16,7 @@ export function BillingGenerator({ defaultYear, defaultMonth }: { defaultYear: n
         <DialogHeader>
           <DialogTitle>Buat tagihan bulanan</DialogTitle>
           <DialogDescription>
-            Sistem akan membuat tagihan kas secara otomatis untuk seluruh anggota aktif.
+            Sistem akan membuat tagihan kas untuk Bendahara dan Anggota aktif. Admin tidak dikenai tagihan.
           </DialogDescription>
         </DialogHeader>
         <ActionForm action={generateBillingPeriod} submitLabel="Generate tagihan">

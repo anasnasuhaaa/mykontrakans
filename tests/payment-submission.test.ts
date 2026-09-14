@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { validateImageFile } from "../lib/storage";
+import { validateAvatarImageFile, validateImageFile } from "../lib/storage";
 
 test("image file validator enforces types and size bounds", () => {
   // Valid JPG
@@ -14,6 +14,7 @@ test("image file validator enforces types and size bounds", () => {
   // Valid WEBP
   const validWebp = new File(["dummy webp content"], "evidence.webp", { type: "image/webp" });
   assert.doesNotThrow(() => validateImageFile(validWebp));
+  assert.doesNotThrow(() => validateAvatarImageFile(validWebp));
 
   // Invalid PDF format
   const invalidPdf = new File(["dummy pdf content"], "evidence.pdf", { type: "application/pdf" });
@@ -23,8 +24,11 @@ test("image file validator enforces types and size bounds", () => {
   const emptyFile = new File([], "empty.jpg", { type: "image/jpeg" });
   assert.throws(() => validateImageFile(emptyFile), /kosong/);
 
-  // Oversized file (> 5 MB)
-  const oversizedBuffer = new Uint8Array(5 * 1024 * 1024 + 1024);
+  // Oversized file (> 2 MB)
+  const oversizedBuffer = new Uint8Array(2 * 1024 * 1024 + 1);
   const oversizedFile = new File([oversizedBuffer], "huge.jpg", { type: "image/jpeg" });
-  assert.throws(() => validateImageFile(oversizedFile), /tidak boleh melebihi 5 MB/);
+  assert.throws(() => validateImageFile(oversizedFile), /tidak boleh melebihi 2 MB/);
+
+  const exactLimitFile = new File([new Uint8Array(2 * 1024 * 1024)], "limit.jpg", { type: "image/jpeg" });
+  assert.doesNotThrow(() => validateImageFile(exactLimitFile));
 });

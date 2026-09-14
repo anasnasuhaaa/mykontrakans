@@ -20,7 +20,7 @@ export default async function PayBillPage({
     where: { id },
     include: {
       billingPeriod: true,
-      member: { select: { id: true, name: true, email: true } },
+      member: { select: { id: true, name: true, email: true, role: true } },
       submissions: {
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -30,6 +30,10 @@ export default async function PayBillPage({
 
   if (!bill) {
     notFound();
+  }
+
+  if (bill.member.role === "ADMIN") {
+    redirect("/bills");
   }
 
   // Ensure member is the owner or finance role

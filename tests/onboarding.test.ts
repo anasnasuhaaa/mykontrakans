@@ -9,6 +9,8 @@ test("member roles and normalized emails are validated", () => {
 test("onboarding requires valid token and matching passwords", () => {
   const input = { token: "a".repeat(64), password: "safe-password-123", confirmPassword: "safe-password-123" };
   assert.equal(onboardingSchema.safeParse(input).success, true);
+  assert.equal(onboardingSchema.safeParse({ ...input, password: "12345", confirmPassword: "12345" }).success, false);
+  assert.equal(onboardingSchema.safeParse({ ...input, password: "123456", confirmPassword: "123456" }).success, true);
   assert.equal(onboardingSchema.safeParse({ ...input, token: "bad" }).success, false);
   assert.equal(onboardingSchema.safeParse({ ...input, confirmPassword: "different" }).success, false);
 });

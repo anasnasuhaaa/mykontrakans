@@ -32,12 +32,16 @@ export async function submitPaymentEvidence(_state: ActionState, form: FormData)
       where: { id: billId },
       include: {
         billingPeriod: true,
-        member: { select: { id: true, name: true, email: true } },
+        member: { select: { id: true, name: true, email: true, role: true } },
       },
     });
 
     if (!bill) {
       throw new BusinessError("Tagihan tidak ditemukan.");
+    }
+
+    if (bill.member.role === "ADMIN") {
+      throw new BusinessError("Admin tidak dikenai tagihan kas.");
     }
 
     // Only the bill owner or finance admin can submit

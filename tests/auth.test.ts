@@ -13,7 +13,8 @@ test("tokens have 256 bits of randomness and are stored as hashes", () => {
 
 test("email normalization and password byte limits", () => {
   assert.equal(emailSchema.parse(" Person@Example.com "), "person@example.com");
-  assert.equal(passwordSchema.safeParse("short").success, false);
+  assert.equal(passwordSchema.safeParse("12345").success, false);
+  assert.equal(passwordSchema.safeParse("123456").success, true);
   assert.equal(passwordSchema.safeParse("🔑".repeat(20)).success, false);
   assert.equal(passwordSchema.safeParse("long-password-123").success, true);
 });

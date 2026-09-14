@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useActionState, useEffect } from "react";
-import Image from "next/image";
+import { useState, useActionState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { submitPaymentEvidence } from "@/app/actions/payments";
 import { initialActionState, type ActionState } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { AlertCircle, UploadCloud, CheckCircle2, Image as ImageIcon, X } from "lucide-react";
+import { AlertCircle, UploadCloud, CheckCircle2, Image as ImageIcon, X, Download } from "lucide-react";
+import { ALLOWED_IMAGE_MIME_TYPES, MAX_IMAGE_UPLOAD_LABEL, MAX_IMAGE_UPLOAD_SIZE } from "@/lib/upload-constraints";
+import { formatRupiah } from "@/lib/utils";
 
 interface PaymentSubmissionFormProps {
   billId: string;
@@ -28,38 +29,45 @@ export function PaymentSubmissionForm({
   rejectionReason,
   lastEvidenceUrl,
 }: PaymentSubmissionFormProps) {
-  const [state, formAction, isPending] = useActionState<ActionState, FormData>(
-    submitPaymentEvidence,
-    initialActionState
-  );
-
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [state, formAction, isPending] = useActionState<ActionState, FormData>(
+    async (previousState, form) => {
+      const nextState = await submitPaymentEvidence(previousState, form);
+      if (nextState.success) {
+        setPreviewUrl(null);
+        setSelectedFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+      return nextState;
+    },
+    initialActionState,
+  );
 
   useEffect(() => {
     if (state.message) {
-      if (state.success) {
-        toast.success(state.message);
-        setPreviewUrl(null);
-        setSelectedFile(null);
-      } else {
-        toast.error(state.message);
-      }
+      (state.success ? toast.success : toast.error)(state.message);
     }
   }, [state]);
+
+  useEffect(() => () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Ukuran file tidak boleh melebihi 5 MB.");
+    if (file.size > MAX_IMAGE_UPLOAD_SIZE) {
+      toast.error(`Ukuran file tidak boleh melebihi ${MAX_IMAGE_UPLOAD_LABEL}.`);
+      e.currentTarget.value = "";
       return;
     }
 
-    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    if (!validTypes.includes(file.type.toLowerCase())) {
+    if (!ALLOWED_IMAGE_MIME_TYPES.includes(file.type.toLowerCase() as typeof ALLOWED_IMAGE_MIME_TYPES[number])) {
       toast.error("Format file harus JPG, PNG, atau WEBP.");
+      e.currentTarget.value = "";
       return;
     }
 
@@ -70,10 +78,8 @@ export function PaymentSubmissionForm({
 
   const clearFile = () => {
     setSelectedFile(null);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setPreviewUrl(null);
   };
 
   if (status === "PAID") {
@@ -124,11 +130,11 @@ export function PaymentSubmissionForm({
             {/* Fallback to image or QR placeholder */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/qris.jpg"
+              src="/qris.jpeg"
               alt="QRIS MyKontrakans"
               className="h-full w-full object-contain"
               onError={(e) => {
-                // If /qris.jpg does not exist, display styled fallback card
+                // If the QRIS asset cannot be loaded, display a styled fallback card.
                 const target = e.currentTarget;
                 target.style.display = "none";
                 const fallback = document.getElementById("qris-fallback");
@@ -148,7 +154,14 @@ export function PaymentSubmissionForm({
               </p>
             </div>
           </div>
+          <Button asChild variant="outline" className="min-h-11 w-full max-w-64">
+            <a href="/qris.jpeg" download="QRIS-MyKontrakans.jpeg">
+              <Download className="size-4" /> Unduh QRIS
+            </a>
+          </Button>
           <div className="text-center space-y-1">
+            <p className="text-xs text-muted-foreground">Total Pembayaran</p>
+            <p className="text-xl font-bold">{formatRupiah(amount)}</p>
             <p className="text-xs text-muted-foreground">Periode Tagihan</p>
             <p className="font-medium">{periodLabel}</p>
             <p className="text-xs text-muted-foreground">Jatuh Tempo: {dueDateLabel}</p>
@@ -180,6 +193,17 @@ export function PaymentSubmissionForm({
 
           <form action={formAction} className="space-y-6">
             <input type="hidden" name="billId" value={billId} />
+            <input
+              ref={fileInputRef}
+              id="evidence-upload"
+              name="evidence"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              onChange={handleFileChange}
+              disabled={isPending}
+              required
+            />
 
             {/* File Upload Area */}
             {!previewUrl ? (
@@ -191,17 +215,7 @@ export function PaymentSubmissionForm({
                   <UploadCloud className="size-7" />
                 </div>
                 <p className="mt-4 font-medium text-sm">Klik untuk memilih screenshot bukti</p>
-                <p className="mt-1 text-xs text-muted-foreground">JPG, PNG, atau WEBP (Maks. 5 MB)</p>
-                <input
-                  id="evidence-upload"
-                  name="evidence"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="sr-only"
-                  onChange={handleFileChange}
-                  disabled={isPending}
-                  required
-                />
+                <p className="mt-1 text-xs text-muted-foreground">JPG, PNG, atau WEBP (Maks. {MAX_IMAGE_UPLOAD_LABEL})</p>
               </label>
             ) : (
               <div className="relative rounded-2xl border overflow-hidden bg-muted/20 p-4">
@@ -211,7 +225,10 @@ export function PaymentSubmissionForm({
                   </span>
                   <button
                     type="button"
-                    onClick={clearFile}
+                    onClick={() => {
+                      clearFile();
+                      window.setTimeout(() => fileInputRef.current?.click(), 0);
+                    }}
                     className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-destructive hover:bg-destructive/10"
                     disabled={isPending}
                   >

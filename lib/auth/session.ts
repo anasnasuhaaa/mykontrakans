@@ -5,7 +5,7 @@ import type { UserRole } from "@prisma/client";
 import { getDb } from "@/lib/db";
 import { createToken, hashToken, SESSION_COOKIE } from "./tokens";
 
-export const publicUserSelect = { id: true, name: true, email: true, role: true, isActive: true, activatedAt: true } as const;
+export const publicUserSelect = { id: true, name: true, email: true, avatarUrl: true, role: true, isActive: true, activatedAt: true } as const;
 
 export async function getSessionUser() {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;

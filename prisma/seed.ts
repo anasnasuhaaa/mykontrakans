@@ -23,7 +23,7 @@ async function main() {
   await db.appSetting.upsert({ where: { id: "default" }, update: {}, create: {} });
   if (process.env.SEED_ADMIN_EMAIL && process.env.SEED_ADMIN_PASSWORD) {
     const email = z.email().parse(process.env.SEED_ADMIN_EMAIL.trim().toLowerCase());
-    const password = z.string().min(12).max(72).parse(process.env.SEED_ADMIN_PASSWORD);
+    const password = z.string().min(6).max(72).parse(process.env.SEED_ADMIN_PASSWORD);
     await db.user.upsert({
       where: { email },
       update: {},

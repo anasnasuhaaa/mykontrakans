@@ -57,7 +57,7 @@ export default async function DashboardPage() {
         createdBy: { select: { name: true } },
       },
     }),
-    db.memberBill.findFirst({
+    user.role === "ADMIN" ? Promise.resolve(null) : db.memberBill.findFirst({
       where: { memberId: user.id },
       orderBy: { createdAt: "desc" },
       include: {

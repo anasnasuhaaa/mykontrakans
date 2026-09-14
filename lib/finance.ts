@@ -80,11 +80,13 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
     db.memberBill.count({
       where: {
         status: { in: ["UNPAID", "REJECTED"] },
+        member: { role: { not: "ADMIN" } },
       },
     }),
     db.paymentSubmission.count({
       where: {
         status: "PENDING_REVIEW",
+        bill: { member: { role: { not: "ADMIN" } } },
       },
     }),
   ]);
@@ -174,7 +176,12 @@ export async function getCurrentPeriodProgress(): Promise<PeriodCompletion | nul
   const db = getDb();
   const latestPeriod = await db.billingPeriod.findFirst({
     orderBy: [{ year: "desc" }, { month: "desc" }],
-    include: { bills: { select: { status: true } } },
+    include: {
+      bills: {
+        where: { member: { role: { not: "ADMIN" } } },
+        select: { status: true },
+      },
+    },
   });
 
   if (!latestPeriod) return null;

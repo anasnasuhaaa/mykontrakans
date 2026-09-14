@@ -4,6 +4,7 @@ import { ActionForm } from "@/components/action-form";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordField } from "@/components/password-field";
 
 export default function LoginPage() {
   return <main className="min-h-dvh p-5 sm:p-8 lg:grid lg:grid-cols-2 lg:gap-12">
@@ -17,9 +18,9 @@ export default function LoginPage() {
       <div className="flex items-center justify-between"><div className="flex items-center gap-2 font-semibold lg:invisible"><House className="size-6 text-primary" /> MyKontrakans</div><ThemeToggle /></div>
       <div className="mx-auto my-auto w-full max-w-sm py-16">
         <div className="mb-8"><div className="mb-6 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary"><House className="size-7" /></div><h2 className="text-3xl font-semibold tracking-tight">Selamat pulang.</h2><p className="mt-3 text-muted-foreground">Masuk untuk melihat kabar kas rumahmu.</p></div>
-        <ActionForm action={login} submitLabel="Masuk" className="[&_button[type=submit]]:w-full">
+        <ActionForm action={login} submitLabel="Masuk" className="[&_button[type=submit]]:w-full" noValidate>
           <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" autoComplete="email" placeholder="nama@email.com" required className="h-12" /></div>
-          <div className="space-y-2"><Label htmlFor="password">Password</Label><Input id="password" name="password" type="password" autoComplete="current-password" required className="h-12" /></div>
+          <PasswordField label="Password" name="password" autoComplete="current-password" required className="h-12" />
         </ActionForm>
         <p className="mt-6 text-sm leading-relaxed text-muted-foreground">Belum punya akses? Minta undangan dari Admin kontrakan.</p>
       </div>

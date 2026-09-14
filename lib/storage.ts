@@ -3,15 +3,13 @@ import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { BusinessError } from "@/lib/actions";
+import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  MAX_IMAGE_UPLOAD_LABEL,
+  MAX_IMAGE_UPLOAD_SIZE,
+} from "@/lib/upload-constraints";
 
-const ALLOWED_MIME_TYPES = new Set([
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "image/webp",
-]);
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const allowedMimeTypes = new Set<string>(ALLOWED_IMAGE_MIME_TYPES);
 
 export type UploadedFileResult = {
   url: string;
@@ -19,22 +17,29 @@ export type UploadedFileResult = {
   size: number;
 };
 
-export function validateImageFile(file: File): void {
-  if (!ALLOWED_MIME_TYPES.has(file.type.toLowerCase())) {
-    throw new BusinessError("Format bukti pembayaran harus JPG, JPEG, PNG, atau WEBP.");
+function validateUpload(file: File, label: string): void {
+  if (!allowedMimeTypes.has(file.type.toLowerCase())) {
+    throw new BusinessError(`Format ${label} harus JPG, JPEG, PNG, atau WEBP.`);
   }
-  if (file.size > MAX_FILE_SIZE) {
-    throw new BusinessError("Ukuran bukti pembayaran tidak boleh melebihi 5 MB.");
+  if (file.size > MAX_IMAGE_UPLOAD_SIZE) {
+    throw new BusinessError(`Ukuran ${label} tidak boleh melebihi ${MAX_IMAGE_UPLOAD_LABEL}.`);
   }
   if (file.size === 0) {
-    throw new BusinessError("File bukti pembayaran kosong.");
+    throw new BusinessError(`File ${label} kosong.`);
   }
 }
 
-export async function uploadEvidenceFile(file: File, folder = "evidence"): Promise<UploadedFileResult> {
-  validateImageFile(file);
+export function validateImageFile(file: File): void {
+  validateUpload(file, "bukti pembayaran");
+}
 
-  const extension = file.type.split("/")[1] || "jpg";
+export function validateAvatarImageFile(file: File): void {
+  validateUpload(file, "foto profil");
+}
+
+async function persistImage(file: File, folder: string): Promise<UploadedFileResult> {
+  const rawExtension = file.type.split("/")[1] || "jpg";
+  const extension = rawExtension === "jpeg" ? "jpg" : rawExtension;
   const uniqueId = randomBytes(16).toString("hex");
   const filename = `${folder}/${Date.now()}-${uniqueId}.${extension}`;
 
@@ -65,4 +70,14 @@ export async function uploadEvidenceFile(file: File, folder = "evidence"): Promi
     mimeType: file.type,
     size: file.size,
   };
+}
+
+export async function uploadEvidenceFile(file: File, folder = "evidence"): Promise<UploadedFileResult> {
+  validateImageFile(file);
+  return persistImage(file, folder);
+}
+
+export async function uploadProfileImage(file: File): Promise<UploadedFileResult> {
+  validateAvatarImageFile(file);
+  return persistImage(file, "profile-avatars");
 }

@@ -21,7 +21,7 @@ export async function saveMember(_state: ActionState, form: FormData): Promise<A
       const previous = id ? await tx.user.findUnique({ where: { id } }) : null;
       if (id && !previous) throw new BusinessError("Anggota tidak ditemukan.");
       if (previous?.id === actor.id && input.role !== "ADMIN") throw new BusinessError("Admin tidak dapat mengubah role sendiri.");
-      if (previous?.role === "ADMIN" && input.role !== "ADMIN") {
+      if (previous?.role === "ADMIN" && previous.isActive && previous.activatedAt && input.role !== "ADMIN") {
         const count = await tx.user.count({ where: { role: "ADMIN", isActive: true, activatedAt: { not: null } } });
         if (count <= 1) throw new BusinessError("Minimal satu Admin aktif harus dipertahankan.");
       }
@@ -48,9 +48,9 @@ export async function toggleMember(_state: ActionState, form: FormData): Promise
   try {
     const id = z.string().min(1).parse(form.get("id"));
     if (id === actor.id) throw new BusinessError("Tidak dapat menonaktifkan akun sendiri.");
-    await getDb().$transaction(async (tx) => {
+    const isNowActive = await getDb().$transaction(async (tx) => {
       const user = await tx.user.findUniqueOrThrow({ where: { id } });
-      if (user.role === "ADMIN" && user.isActive) {
+      if (user.role === "ADMIN" && user.isActive && user.activatedAt) {
         const count = await tx.user.count({ where: { role: "ADMIN", isActive: true, activatedAt: { not: null } } });
         if (count <= 1) throw new BusinessError("Minimal satu Admin aktif harus dipertahankan.");
       }
@@ -58,9 +58,81 @@ export async function toggleMember(_state: ActionState, form: FormData): Promise
       await tx.session.deleteMany({ where: { userId: id } });
       await tx.onboardingToken.deleteMany({ where: { userId: id } });
       await tx.auditLog.create({ data: { actorId: actor.id, action: "MEMBER_STATUS_CHANGED", entityType: "User", entityId: id } });
+      return !user.isActive;
     }, { isolationLevel: "Serializable" });
     revalidatePath("/members");
-    return { success: true, message: "Status anggota diperbarui." };
+    return { success: true, message: isNowActive ? "Akun anggota diaktifkan kembali." : "Akun anggota dinonaktifkan sementara." };
+  } catch (error) { return actionError(error); }
+}
+
+export async function deleteMember(_state: ActionState, form: FormData): Promise<ActionState> {
+  const actor = await requireUser(["ADMIN"]);
+  try {
+    const id = z.string().min(1).max(100).parse(form.get("id"));
+    if (id === actor.id) throw new BusinessError("Admin tidak dapat menghapus akun sendiri.");
+
+    const deletedName = await getDb().$transaction(async (tx) => {
+      const user = await tx.user.findUnique({ where: { id } });
+      if (!user) throw new BusinessError("Anggota tidak ditemukan.");
+
+      if (user.role === "ADMIN" && user.isActive && user.activatedAt) {
+        const activeAdminCount = await tx.user.count({
+          where: { role: "ADMIN", isActive: true, activatedAt: { not: null } },
+        });
+        if (activeAdminCount <= 1) throw new BusinessError("Admin aktif terakhir tidak dapat dihapus.");
+      }
+
+      const ownedBills = await tx.memberBill.findMany({
+        where: { memberId: id },
+        select: { id: true },
+      });
+      const ownedBillIds = ownedBills.map((bill) => bill.id);
+      const ownedSubmissions = await tx.paymentSubmission.findMany({
+        where: { billId: { in: ownedBillIds } },
+        select: { id: true },
+      });
+      const submissionIds = ownedSubmissions.map((submission) => submission.id);
+      if (submissionIds.length > 0) {
+        await tx.transaction.deleteMany({ where: { relatedPaymentId: { in: submissionIds } } });
+      }
+
+      await tx.paymentSubmission.updateMany({ where: { reviewerId: id }, data: { reviewerId: null } });
+      if (submissionIds.length > 0) {
+        await tx.paymentSubmission.deleteMany({ where: { id: { in: submissionIds } } });
+      }
+      await tx.memberBill.deleteMany({ where: { memberId: id } });
+
+      // Preserve submissions the user uploaded on behalf of somebody else.
+      await tx.paymentSubmission.updateMany({ where: { memberId: id }, data: { memberId: actor.id } });
+
+      // Keep shared bookkeeping intact when the deleted user created financial records.
+      await tx.transaction.updateMany({ where: { createdById: id }, data: { createdById: actor.id } });
+      await tx.billingPeriod.updateMany({ where: { createdById: id }, data: { createdById: actor.id } });
+
+      await tx.session.deleteMany({ where: { userId: id } });
+      await tx.onboardingToken.deleteMany({ where: { userId: id } });
+      await tx.authAttempt.deleteMany({ where: { key: `login:${hashToken(user.email)}` } });
+      await tx.auditLog.deleteMany({ where: { actorId: id } });
+      await tx.user.delete({ where: { id } });
+      await tx.auditLog.create({
+        data: {
+          actorId: actor.id,
+          action: "MEMBER_DELETED",
+          entityType: "User",
+          entityId: id,
+          metadata: { memberName: user.name },
+        },
+      });
+      return user.name;
+    }, { isolationLevel: "Serializable" });
+
+    revalidatePath("/members");
+    revalidatePath("/bills");
+    revalidatePath("/dashboard");
+    revalidatePath("/payments/review");
+    revalidatePath("/transactions");
+    revalidatePath("/history");
+    return { success: true, message: `${deletedName} telah dihapus permanen.` };
   } catch (error) { return actionError(error); }
 }
 

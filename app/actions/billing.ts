@@ -41,12 +41,12 @@ export async function generateBillingPeriod(_state: ActionState, form: FormData)
       }
 
       const activeMembers = await tx.user.findMany({
-        where: { isActive: true },
+        where: { isActive: true, role: { not: "ADMIN" } },
         select: { id: true },
       });
 
       if (activeMembers.length === 0) {
-        throw new BusinessError("Tidak ada anggota aktif untuk dibuatkan tagihan.");
+        throw new BusinessError("Tidak ada Bendahara atau Anggota aktif untuk dibuatkan tagihan.");
       }
 
       const period = await tx.billingPeriod.create({
