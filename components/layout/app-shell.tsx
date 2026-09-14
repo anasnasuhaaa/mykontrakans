@@ -7,7 +7,6 @@ import {
   CircleEllipsis,
   ClipboardCheck,
   History,
-  House,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -18,6 +17,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { logout } from "@/app/actions/auth";
+import { BrandLogo } from "@/components/brand-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -75,9 +75,7 @@ export function AppShell({ user, children }: { user: { name: string; role: strin
 
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r bg-card/75 px-5 py-7 backdrop-blur-xl lg:flex">
         <Link href="/dashboard" className="mb-10 flex items-center gap-3 rounded-xl px-3 py-1 text-lg font-semibold tracking-tight">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-            <House className="size-5" />
-          </span>
+          <BrandLogo className="size-10" alt="" />
           MyKontrakans
         </Link>
         <p className="mb-3 px-4 text-[11px] font-semibold tracking-[0.16em] text-muted-foreground">RUANG BERSAMA</p>
@@ -119,9 +117,7 @@ export function AppShell({ user, children }: { user: { name: string; role: strin
         <header className="sticky top-0 z-20 border-b bg-card/80 backdrop-blur-xl supports-[backdrop-filter]:bg-card/70">
           <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-10">
             <Link href="/dashboard" className="flex min-h-11 items-center gap-2.5 rounded-xl font-semibold tracking-tight lg:hidden">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <House className="size-5" />
-              </span>
+              <BrandLogo className="size-9" alt="" />
               <span className="text-[15px]">MyKontrakans</span>
             </Link>
             <span className="hidden text-sm text-muted-foreground lg:block">Rumah yang nyaman, kas yang transparan.</span>

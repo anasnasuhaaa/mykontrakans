@@ -33,7 +33,7 @@ export default async function HistoryPage() {
     db.transaction.findMany({
       orderBy: { transactionDate: "desc" },
       include: {
-        category: { select: { name: true } },
+        category: { select: { id: true, name: true } },
         createdBy: { select: { name: true } },
       },
     }),

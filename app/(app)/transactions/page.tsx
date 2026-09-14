@@ -21,7 +21,7 @@ export default async function TransactionsPage() {
     db.transaction.findMany({
       orderBy: { transactionDate: "desc" },
       include: {
-        category: { select: { name: true } },
+        category: { select: { id: true, name: true } },
         createdBy: { select: { name: true } },
       },
     }),
@@ -82,7 +82,7 @@ export default async function TransactionsPage() {
         </Card>
       </div>
 
-      <TransactionList transactions={transactions} canManage={true} />
+      <TransactionList transactions={transactions} categories={categories} canManage={true} />
     </div>
   );
 }

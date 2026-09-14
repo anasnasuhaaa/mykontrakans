@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { deleteTransaction } from "@/app/actions/transactions";
 import { ConfirmAction } from "@/components/confirm-action";
+import { TransactionForm, type CategoryOption } from "@/components/finance/transaction-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,7 @@ import {
   Receipt,
   Search,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
 
 export type TransactionRecord = {
@@ -31,6 +33,7 @@ export type TransactionRecord = {
   receiptPath?: string | null;
   relatedPaymentId?: string | null;
   category: {
+    id: string;
     name: string;
   };
   createdBy: {
@@ -41,9 +44,11 @@ export type TransactionRecord = {
 export function TransactionList({
   transactions,
   canManage = false,
+  categories = [],
 }: {
   transactions: TransactionRecord[];
   canManage?: boolean;
+  categories?: CategoryOption[];
 }) {
   const [filterType, setFilterType] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -183,13 +188,28 @@ export function TransactionList({
                     )}
 
                     {canManage && !tx.relatedPaymentId && (
-                      <ConfirmAction
-                        action={deleteTransaction}
-                        label="Hapus"
-                        description={`Hapus transaksi "${tx.description}" senilai ${formatRupiah(tx.amount)}? Tindakan ini akan memperbarui saldo kas.`}
-                      >
-                        <input type="hidden" name="id" value={tx.id} />
-                      </ConfirmAction>
+                      <>
+                        <TransactionForm categories={categories} transaction={tx} />
+                        <ConfirmAction
+                          action={deleteTransaction}
+                          label="Hapus"
+                          description={`Hapus transaksi "${tx.description}" senilai ${formatRupiah(tx.amount)}? Tindakan ini akan memperbarui saldo kas.`}
+                          trigger={
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-muted-foreground hover:text-destructive"
+                              aria-label={`Hapus transaksi ${tx.description}`}
+                              title="Hapus transaksi"
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          }
+                        >
+                          <input type="hidden" name="id" value={tx.id} />
+                        </ConfirmAction>
+                      </>
                     )}
                   </div>
                 </div>
