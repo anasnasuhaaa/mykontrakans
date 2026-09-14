@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 function SubmitButton({ label, variant }: { label: string; variant?: "default" | "destructive" | "outline" }) {
   const { pending } = useFormStatus();
-  return <Button type="submit" variant={variant} disabled={pending} className="min-h-11">{pending && <LoaderCircle className="size-4 animate-spin" />}{pending ? "Memproses…" : label}</Button>;
+  return <Button type="submit" variant={variant} disabled={pending} className="min-h-11 w-full sm:w-auto">{pending && <LoaderCircle className="size-4 animate-spin" />}{pending ? "Memproses…" : label}</Button>;
 }
 
 export function ActionForm({ action, children, submitLabel = "Simpan", className, variant, noValidate }: {

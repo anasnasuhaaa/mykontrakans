@@ -28,11 +28,11 @@ export default async function TransactionsPage() {
   ]);
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
+    <div className="page-stack">
+      <header className="page-header">
         <div>
-          <p className="text-sm text-muted-foreground">Buku Kas & Pengeluaran</p>
-          <h1 className="text-3xl font-bold tracking-tight">Kelola Transaksi</h1>
+          <p className="page-eyebrow">Buku kas & pengeluaran</p>
+          <h1 className="page-title">Kelola transaksi</h1>
         </div>
         <TransactionForm categories={categories} />
       </header>

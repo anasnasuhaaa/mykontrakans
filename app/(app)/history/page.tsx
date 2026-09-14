@@ -4,8 +4,8 @@ import { formatJakartaMonthYear, formatJakartaDate } from "@/lib/dates";
 import { formatRupiah } from "@/lib/utils";
 import { TransactionList } from "@/components/finance/transaction-list";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CheckCircle2, Clock, AlertCircle, Receipt } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
 
 export default async function HistoryPage() {
   const user = await requireUser();
@@ -40,10 +40,10 @@ export default async function HistoryPage() {
   ]);
 
   return (
-    <div className="space-y-8">
+    <div className="page-stack">
       <header>
-        <p className="text-sm text-muted-foreground">Transparansi Keuangan</p>
-        <h1 className="text-3xl font-bold tracking-tight">Riwayat & Catatan Kas</h1>
+        <p className="page-eyebrow">Transparansi keuangan</p>
+        <h1 className="page-title">Riwayat & catatan kas</h1>
       </header>
 
       {/* Section 1: My Personal Payment History */}
@@ -56,11 +56,11 @@ export default async function HistoryPage() {
         </div>
 
         {myBills.length === 0 ? (
-          <Card className="rounded-2xl p-8 text-center text-muted-foreground">
+          <Card className="empty-state text-muted-foreground">
             <p className="text-sm">Belum ada catatan tagihan kas untuk akun Anda.</p>
           </Card>
         ) : (
-          <div className="divide-y rounded-2xl border bg-card overflow-hidden">
+          <div className="surface-list">
             {myBills.map((bill) => {
               const sub = bill.submissions[0];
               const isPaid = bill.status === "PAID";

@@ -73,15 +73,15 @@ export function TransactionList({
             placeholder="Cari transaksi atau kategori..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border bg-card py-2 pl-10 pr-4 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary"
+            className="h-11 w-full rounded-xl border border-input bg-card py-2 pl-10 pr-4 text-base shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus:border-ring focus:ring-[3px] focus:ring-ring/50 md:text-sm"
           />
         </div>
 
-        <div className="flex rounded-xl bg-muted p-1 text-xs font-semibold">
+        <div className="grid grid-cols-3 rounded-xl bg-muted p-1 text-xs font-semibold">
           <button
             type="button"
             onClick={() => setFilterType("ALL")}
-            className={`rounded-lg px-3 py-1.5 transition-all ${
+            className={`min-h-9 rounded-lg px-2 py-1.5 transition-all sm:px-3 ${
               filterType === "ALL" ? "bg-card text-foreground shadow-xs" : "text-muted-foreground"
             }`}
           >
@@ -90,7 +90,7 @@ export function TransactionList({
           <button
             type="button"
             onClick={() => setFilterType("INCOME")}
-            className={`rounded-lg px-3 py-1.5 transition-all ${
+            className={`min-h-9 rounded-lg px-2 py-1.5 transition-all sm:px-3 ${
               filterType === "INCOME" ? "bg-card text-emerald-600 shadow-xs dark:text-emerald-400" : "text-muted-foreground"
             }`}
           >
@@ -99,7 +99,7 @@ export function TransactionList({
           <button
             type="button"
             onClick={() => setFilterType("EXPENSE")}
-            className={`rounded-lg px-3 py-1.5 transition-all ${
+            className={`min-h-9 rounded-lg px-2 py-1.5 transition-all sm:px-3 ${
               filterType === "EXPENSE" ? "bg-card text-rose-600 shadow-xs dark:text-rose-400" : "text-muted-foreground"
             }`}
           >
@@ -110,13 +110,13 @@ export function TransactionList({
 
       {/* Transactions List */}
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border bg-card p-12 text-center text-muted-foreground">
+        <div className="empty-state text-muted-foreground">
           <Receipt className="mx-auto size-10 opacity-40 mb-3" />
           <p className="font-semibold text-base">Tidak ada transaksi ditemukan</p>
           <p className="text-xs mt-1">Sesuaikan kata kunci pencarian atau filter tipe transaksi.</p>
         </div>
       ) : (
-        <div className="divide-y rounded-2xl border bg-card overflow-hidden">
+        <div className="surface-list">
           {filtered.map((tx) => {
             const isIncome = tx.type === "INCOME";
             return (

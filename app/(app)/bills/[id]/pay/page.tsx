@@ -46,7 +46,7 @@ export default async function PayBillPage({
   const latestSubmission = bill.submissions[0];
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       <div>
         <Link
           href="/bills"
@@ -54,14 +54,14 @@ export default async function PayBillPage({
         >
           <ArrowLeft className="size-4" /> Kembali ke daftar tagihan
         </Link>
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">Pembayaran Kas</p>
-            <h1 className="text-3xl font-bold tracking-tight">Tagihan {periodLabel}</h1>
+            <p className="page-eyebrow">Pembayaran kas</p>
+            <h1 className="page-title">Tagihan {periodLabel}</h1>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <p className="text-xs text-muted-foreground">Nominal yang harus dibayar</p>
-            <p className="text-3xl font-extrabold text-primary">{formatRupiah(bill.amount)}</p>
+            <p className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">{formatRupiah(bill.amount)}</p>
           </div>
         </div>
       </div>

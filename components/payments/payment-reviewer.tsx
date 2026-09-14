@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatRupiah } from "@/lib/utils";
 import { formatJakartaDate } from "@/lib/dates";
-import { Check, X, Eye, ExternalLink } from "lucide-react";
+import { X, Eye, ExternalLink } from "lucide-react";
 
 export type PendingPaymentItem = {
   id: string;
@@ -46,7 +46,7 @@ export function PaymentReviewer({ items }: { items: PendingPaymentItem[] }) {
 
   return (
     <>
-      <div className="divide-y rounded-2xl border bg-card overflow-hidden">
+      <div className="surface-list">
         {items.map((item) => (
           <div
             key={item.id}
@@ -87,20 +87,20 @@ export function PaymentReviewer({ items }: { items: PendingPaymentItem[] }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-center">
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center sm:self-center">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setActivePreview(item)}
               >
-                <Eye className="size-4 mr-1.5" /> Lihat Bukti
+                <Eye className="mr-1.5 size-4" /> Lihat bukti
               </Button>
 
               <ActionForm
                 action={approvePaymentSubmission}
                 submitLabel="Setujui"
-                className="inline"
+                className="contents sm:block"
               >
                 <input type="hidden" name="submissionId" value={item.id} />
               </ActionForm>
@@ -111,7 +111,7 @@ export function PaymentReviewer({ items }: { items: PendingPaymentItem[] }) {
                 size="sm"
                 onClick={() => setRejectingItem(item)}
               >
-                <X className="size-4 mr-1.5" /> Tolak
+                <X className="mr-1.5 size-4" /> Tolak
               </Button>
             </div>
           </div>

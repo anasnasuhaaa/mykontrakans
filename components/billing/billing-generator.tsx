@@ -10,7 +10,7 @@ export function BillingGenerator({ defaultYear, defaultMonth }: { defaultYear: n
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="min-h-11">Buat tagihan periode baru</Button>
+        <Button className="min-h-11 w-full sm:w-auto">Buat tagihan periode baru</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

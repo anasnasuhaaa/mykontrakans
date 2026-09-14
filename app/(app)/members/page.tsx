@@ -27,17 +27,17 @@ export default async function MembersPage() {
   });
 
   return (
-    <div className="space-y-8">
-      <header className="flex flex-wrap items-center justify-between gap-4">
+    <div className="page-stack">
+      <header className="page-header">
         <div>
-          <p className="text-sm text-muted-foreground">Rumah kita</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Anggota</h1>
+          <p className="page-eyebrow">Rumah kita</p>
+          <h1 className="page-title">Anggota</h1>
           <p className="mt-2 text-sm text-muted-foreground">Lihat profil dan pantau status pembayaran terbaru seluruh penghuni.</p>
         </div>
         {isAdmin && <MemberEditor />}
       </header>
 
-      <div className="divide-y rounded-2xl bg-card px-5 shadow-sm">
+      <div className="surface-list px-4 sm:px-5">
         {members.map((member) => {
           const latestBill = member.role === "ADMIN" ? null : member.bills[0];
           const paymentStatus = latestBill
@@ -45,9 +45,9 @@ export default async function MembersPage() {
             : null;
 
           return (
-            <article key={member.id} className="flex flex-wrap items-center justify-between gap-4 py-5">
-              <div className="flex min-w-0 items-center gap-4">
-                <Avatar className="size-14">
+            <article key={member.id} className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
+                <Avatar className="size-12 sm:size-14">
                   <AvatarImage src={member.avatarUrl || undefined} alt={`Foto profil ${member.name}`} className="object-cover" />
                   <AvatarFallback className="text-lg font-semibold">{member.name.slice(0, 1).toUpperCase()}</AvatarFallback>
                 </Avatar>
@@ -71,13 +71,14 @@ export default async function MembersPage() {
               </div>
 
               {isAdmin && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
                   <MemberEditor member={member} />
                   {member.id !== actor.id && (
                     <>
                       <ConfirmAction
                         action={toggleMember}
                         label={member.isActive ? "Nonaktifkan sementara" : "Aktifkan kembali"}
+                        triggerLabel={member.isActive ? "Nonaktifkan" : "Aktifkan"}
                         description={member.isActive
                           ? "Pengguna akan langsung keluar dan tidak dapat login sampai diaktifkan kembali. Riwayatnya tetap tersimpan."
                           : "Pengguna akan mendapatkan kembali akses login ke aplikasi."}
@@ -87,6 +88,7 @@ export default async function MembersPage() {
                       <ConfirmAction
                         action={deleteMember}
                         label="Hapus permanen"
+                        triggerLabel="Hapus"
                         description="Akun, tagihan, dan pengajuan pembayaran milik pengguna akan dihapus permanen. Tindakan ini tidak dapat dibatalkan."
                       >
                         <input type="hidden" name="id" value={member.id} />

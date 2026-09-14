@@ -37,14 +37,14 @@ export function TransactionForm({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="min-h-11 gap-2 font-medium">
+        <Button className="min-h-11 w-full gap-2 sm:w-auto">
           <PlusCircle className="size-4" />
-          Tambah Transaksi
+          Tambah transaksi
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Catat Transaksi Kas</DialogTitle>
+          <DialogTitle>Catat transaksi kas</DialogTitle>
           <DialogDescription>
             Pemasukan atau pengeluaran akan langsung memperbarui saldo kas bersama.
           </DialogDescription>
@@ -55,7 +55,7 @@ export function TransactionForm({
           <button
             type="button"
             onClick={() => setTxType("EXPENSE")}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-all ${
+            className={`flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2.5 text-sm font-semibold transition-all ${
               txType === "EXPENSE"
                 ? "bg-card text-rose-600 shadow-xs dark:text-rose-400"
                 : "text-muted-foreground hover:text-foreground"
@@ -66,7 +66,7 @@ export function TransactionForm({
           <button
             type="button"
             onClick={() => setTxType("INCOME")}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-all ${
+            className={`flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2.5 text-sm font-semibold transition-all ${
               txType === "INCOME"
                 ? "bg-card text-emerald-600 shadow-xs dark:text-emerald-400"
                 : "text-muted-foreground hover:text-foreground"
@@ -90,13 +90,13 @@ export function TransactionForm({
 
           <div className="space-y-4">
             <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">
+              <label className="mb-2 block text-sm font-medium">
                 Kategori {txType === "INCOME" ? "Pemasukan" : "Pengeluaran"}
               </label>
               <select
                 name="categoryId"
                 required
-                className="w-full rounded-xl border bg-card px-3.5 py-2.5 text-sm font-medium focus:outline-hidden focus:ring-2 focus:ring-primary"
+                className="h-11 w-full rounded-xl border border-input bg-card px-3.5 py-2.5 text-base shadow-xs outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/50 md:text-sm"
               >
                 <option value="">Pilih Kategori</option>
                 {filteredCategories.map((c) => (
@@ -133,14 +133,14 @@ export function TransactionForm({
             />
 
             <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">
+              <label className="mb-2 block text-sm font-medium">
                 Bukti Struk / Nota (Opsional)
               </label>
               <input
                 name="receipt"
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                className="w-full text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-xs file:font-medium hover:file:bg-muted/80 cursor-pointer"
+                className="min-h-11 w-full cursor-pointer rounded-xl border border-input bg-card p-1.5 text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-xs file:font-medium hover:file:bg-muted/80"
               />
             </div>
           </div>

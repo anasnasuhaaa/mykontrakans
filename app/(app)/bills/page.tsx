@@ -38,17 +38,17 @@ export default async function BillsPage() {
   });
 
   return (
-    <div className="space-y-8">
-      <header className="flex flex-wrap items-center justify-between gap-4">
+    <div className="page-stack">
+      <header className="page-header">
         <div>
-          <p className="text-sm text-muted-foreground">Keuangan bersama</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Tagihan kas bulanan</h1>
+          <p className="page-eyebrow">Keuangan bersama</p>
+          <h1 className="page-title">Tagihan kas bulanan</h1>
         </div>
         {isFinance && <BillingGenerator defaultYear={currentYear} defaultMonth={currentMonth} />}
       </header>
 
       {periods.length === 0 ? (
-        <Card className="rounded-2xl p-12 text-center">
+        <Card className="empty-state">
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Wallet className="size-6" />
           </div>
@@ -106,7 +106,7 @@ export default async function BillsPage() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-6 p-6">
+                <CardContent className="space-y-6 p-4 sm:p-6">
                   {/* Personal bill card for the logged-in user */}
                   {myBill && (
                     <div className="rounded-xl border bg-card p-5 shadow-xs">
@@ -163,7 +163,7 @@ export default async function BillsPage() {
                                 <p className="truncate text-xs text-muted-foreground">{bill.member.email}</p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="ml-[52px] flex w-full items-center justify-between gap-3 sm:ml-0 sm:w-auto sm:justify-end">
                               <span className="text-sm font-medium">{formatRupiah(bill.amount)}</span>
                               <Badge variant={status.variant}>{status.label}</Badge>
                             </div>

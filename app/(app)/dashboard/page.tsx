@@ -25,8 +25,6 @@ import {
   CheckCircle2,
   Clock,
   ArrowRight,
-  Users,
-  Receipt,
   FileCheck,
   PlusCircle,
 } from "lucide-react";
@@ -34,8 +32,6 @@ import {
 export default async function DashboardPage() {
   const user = await requireUser();
   const isFinance = user.role === "ADMIN" || user.role === "TREASURER";
-  const isAdmin = user.role === "ADMIN";
-
   const db = getDb();
   const [
     summary,
@@ -76,27 +72,27 @@ export default async function DashboardPage() {
   const latestSubmission = myLatestBill?.submissions[0];
 
   return (
-    <div className="space-y-8">
+    <div className="page-stack">
       {/* Header & Greetings */}
-      <header className="flex flex-wrap items-center justify-between gap-4">
+      <header className="page-header">
         <div>
-          <p className="text-sm font-medium text-muted-foreground">
+          <p className="page-eyebrow normal-case tracking-normal">
             Selamat datang, <span className="text-foreground">{user.name}</span>
           </p>
-          <h1 className="text-3xl font-bold tracking-tight">Ringkasan Keuangan</h1>
+          <h1 className="page-title">Ringkasan Keuangan</h1>
         </div>
 
         {/* Action shortcuts */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
           {isFinance ? (
             <>
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="outline" className="w-full sm:w-auto">
                 <Link href="/payments/review" className="gap-1.5">
                   <FileCheck className="size-4" />
                   Review {summary.pendingReviewsCount > 0 && `(${summary.pendingReviewsCount})`}
                 </Link>
               </Button>
-              <Button asChild size="sm">
+              <Button asChild className="w-full sm:w-auto">
                 <Link href="/transactions" className="gap-1.5">
                   <PlusCircle className="size-4" />
                   Catat Transaksi
@@ -105,7 +101,7 @@ export default async function DashboardPage() {
             </>
           ) : (
             myLatestBill && myLatestBill.status !== "PAID" && (
-              <Button asChild size="sm">
+              <Button asChild className="w-full sm:w-auto">
                 <Link href={`/bills/${myLatestBill.id}/pay`} className="gap-1.5">
                   Bayar Kas Sekarang <ArrowRight className="size-4" />
                 </Link>
@@ -118,14 +114,14 @@ export default async function DashboardPage() {
       {/* Member Personal Obligation Card (Mobile-First Priority) */}
       {myLatestBill && (
         <Card className="overflow-hidden rounded-2xl border bg-card shadow-xs">
-          <div className="p-6">
+          <div className="p-5 sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1">
                 <p className="text-xs font-semibold text-muted-foreground">
                   Tagihan Kas Anda ({myLatestBill.billingPeriod.month}/{myLatestBill.billingPeriod.year})
                 </p>
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl font-extrabold tracking-tight">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-2xl font-bold tracking-tight sm:text-3xl">
                     {formatRupiah(myLatestBill.amount)}
                   </span>
                   {billStatus && <Badge variant={billStatus.variant}>{billStatus.label}</Badge>}
@@ -150,7 +146,7 @@ export default async function DashboardPage() {
                     <Clock className="size-5" /> Bukti Sedang Direview
                   </span>
                 ) : (
-                  <Button asChild className="w-full sm:w-auto min-h-11">
+                  <Button asChild className="min-h-11 w-full sm:w-auto">
                     <Link href={`/bills/${myLatestBill.id}/pay`}>
                       Bayar via QRIS <ArrowRight className="size-4 ml-1" />
                     </Link>
@@ -283,9 +279,9 @@ export default async function DashboardPage() {
                 return (
                   <div
                     key={tx.id}
-                    className="flex items-center justify-between p-4 transition-colors hover:bg-muted/30"
+                    className="flex items-start justify-between gap-3 p-4 transition-colors hover:bg-muted/30 sm:items-center"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
                       <div
                         className={`flex size-8 items-center justify-center rounded-lg ${
                           isIncome
@@ -299,15 +295,15 @@ export default async function DashboardPage() {
                           <ArrowDownRight className="size-4" />
                         )}
                       </div>
-                      <div>
-                        <p className="text-sm font-medium leading-tight">{tx.description}</p>
-                        <p className="text-xs text-muted-foreground">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium leading-tight">{tx.description}</p>
+                        <p className="truncate text-xs text-muted-foreground">
                           {formatJakartaDate(new Date(tx.transactionDate))} · {tx.category.name}
                         </p>
                       </div>
                     </div>
                     <span
-                      className={`text-sm font-bold tabular-nums ${
+                      className={`shrink-0 text-sm font-bold tabular-nums ${
                         isIncome
                           ? "text-emerald-600 dark:text-emerald-400"
                           : "text-rose-600 dark:text-rose-400"
