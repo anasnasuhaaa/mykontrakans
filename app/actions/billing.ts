@@ -84,3 +84,56 @@ export async function generateBillingPeriod(_state: ActionState, form: FormData)
     return actionError(error);
   }
 }
+
+export async function deleteBillingPeriod(_state: ActionState, form: FormData): Promise<ActionState> {
+  const actor = await requireUser(financeRoles);
+
+  try {
+    const periodId = z.string().min(1, "ID periode tidak ditemukan.").max(100).parse(form.get("periodId"));
+    const deletedPeriod = await getDb().$transaction(async (tx) => {
+      const period = await tx.billingPeriod.findUnique({
+        where: { id: periodId },
+        include: {
+          bills: {
+            select: {
+              status: true,
+              _count: { select: { submissions: true } },
+            },
+          },
+        },
+      });
+
+      if (!period) throw new BusinessError("Periode tagihan tidak ditemukan.");
+
+      const hasPaymentActivity = period.bills.some(
+        (bill) => bill.status !== "UNPAID" || bill._count.submissions > 0,
+      );
+      if (hasPaymentActivity) {
+        throw new BusinessError("Periode tidak dapat dihapus karena sudah memiliki aktivitas pembayaran.");
+      }
+
+      await tx.memberBill.deleteMany({ where: { billingPeriodId: period.id } });
+      await tx.billingPeriod.delete({ where: { id: period.id } });
+      await tx.auditLog.create({
+        data: {
+          actorId: actor.id,
+          action: "BILLING_PERIOD_DELETED",
+          entityType: "BillingPeriod",
+          entityId: period.id,
+          metadata: { year: period.year, month: period.month, billCount: period.bills.length },
+        },
+      });
+
+      return { year: period.year, month: period.month };
+    }, { isolationLevel: "Serializable" });
+
+    revalidatePath("/bills");
+    revalidatePath("/dashboard");
+    return {
+      success: true,
+      message: `Periode tagihan ${deletedPeriod.month}/${deletedPeriod.year} berhasil dihapus.`,
+    };
+  } catch (error) {
+    return actionError(error);
+  }
+}

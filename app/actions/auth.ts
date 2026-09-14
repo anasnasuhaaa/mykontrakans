@@ -31,13 +31,19 @@ export async function login(_state: ActionState, formData: FormData): Promise<Ac
   } catch (error) {
     return actionError(error);
   }
-  redirect("/dashboard");
+  redirect("/dashboard?toast=login");
 }
 
 export async function logout() {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
-  if (token) await getDb().session.deleteMany({ where: { tokenHash: hashToken(token) } });
+  if (token) {
+    try {
+      await getDb().session.deleteMany({ where: { tokenHash: hashToken(token) } });
+    } catch (error) {
+      console.error("Failed to remove server session during logout", error instanceof Error ? error.name : "UnknownError");
+    }
+  }
   jar.delete(SESSION_COOKIE);
-  redirect("/login");
+  redirect("/login?toast=logout");
 }

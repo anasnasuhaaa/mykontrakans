@@ -165,5 +165,5 @@ export async function activateAccount(_state: ActionState, form: FormData): Prom
       await tx.auditLog.create({ data: { actorId: token.userId, action: "ACCOUNT_ACTIVATED", entityType: "User", entityId: token.userId } });
     });
   } catch (error) { return actionError(error); }
-  redirect("/login?activated=1");
+  redirect("/login?toast=activated");
 }

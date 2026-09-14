@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
-import type { FormAction } from "@/lib/actions";
+import type { ActionState, FormAction } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -16,10 +16,11 @@ function SubmitButton({ label, variant }: { label: string; variant?: "default" |
 export function ActionForm({ action, children, submitLabel = "Simpan", className, variant, noValidate }: {
   action: FormAction; children?: React.ReactNode; submitLabel?: string; className?: string; variant?: "default" | "destructive" | "outline"; noValidate?: boolean;
 }) {
-  const [state, formAction] = useActionState(action, {});
-  useEffect(() => {
-    if (state.message) (state.success ? toast.success : toast.error)(state.message);
-  }, [state]);
+  const [state, formAction] = useActionState<ActionState, FormData>(async (previousState, formData) => {
+    const nextState = await action(previousState, formData);
+    if (nextState.message) (nextState.success ? toast.success : toast.error)(nextState.message);
+    return nextState;
+  }, {});
   return <form action={formAction} className={cn("space-y-4", className)} noValidate={noValidate}>
     {children}
     {state.message && <p role="status" className={cn("text-sm", state.success ? "text-muted-foreground" : "text-destructive")}>{state.message}</p>}

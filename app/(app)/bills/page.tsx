@@ -4,6 +4,8 @@ import { getDb } from "@/lib/db";
 import { formatJakartaMonthYear, formatJakartaDate, getBillDisplayStatus, getJakartaDate } from "@/lib/dates";
 import { formatRupiah } from "@/lib/utils";
 import { BillingGenerator } from "@/components/billing/billing-generator";
+import { ConfirmAction } from "@/components/confirm-action";
+import { deleteBillingPeriod } from "@/app/actions/billing";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -78,7 +80,7 @@ export default async function BillsPage() {
                         Jatuh tempo: {formatJakartaDate(period.dueDate)} · {formatRupiah(period.amountPerMember)} / anggota
                       </CardDescription>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center justify-end gap-3">
                       <div className="text-right">
                         <p className="text-xs text-muted-foreground">Kelunasan</p>
                         <p className="font-medium">
@@ -91,6 +93,15 @@ export default async function BillsPage() {
                           style={{ width: `${totalCount > 0 ? (paidCount / totalCount) * 100 : 0}%` }}
                         />
                       </div>
+                      {isFinance && (
+                        <ConfirmAction
+                          action={deleteBillingPeriod}
+                          label="Hapus periode"
+                          description="Periode dan seluruh tagihan yang masih kosong akan dihapus permanen. Periode yang sudah memiliki aktivitas pembayaran tidak dapat dihapus."
+                        >
+                          <input type="hidden" name="periodId" value={period.id} />
+                        </ConfirmAction>
+                      )}
                     </div>
                   </div>
                 </CardHeader>

@@ -31,10 +31,12 @@ export function PaymentSubmissionForm({
 }: PaymentSubmissionFormProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDownloadingQris, setIsDownloadingQris] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [state, formAction, isPending] = useActionState<ActionState, FormData>(
+  const [, formAction, isPending] = useActionState<ActionState, FormData>(
     async (previousState, form) => {
       const nextState = await submitPaymentEvidence(previousState, form);
+      if (nextState.message) (nextState.success ? toast.success : toast.error)(nextState.message);
       if (nextState.success) {
         setPreviewUrl(null);
         setSelectedFile(null);
@@ -44,12 +46,6 @@ export function PaymentSubmissionForm({
     },
     initialActionState,
   );
-
-  useEffect(() => {
-    if (state.message) {
-      (state.success ? toast.success : toast.error)(state.message);
-    }
-  }, [state]);
 
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -80,6 +76,27 @@ export function PaymentSubmissionForm({
     setSelectedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
     setPreviewUrl(null);
+  };
+
+  const downloadQris = async () => {
+    setIsDownloadingQris(true);
+    try {
+      const response = await fetch("/qris.jpeg", { cache: "no-store" });
+      if (!response.ok) throw new Error("QRIS download failed");
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = "QRIS-MyKontrakans.jpeg";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      toast.success("QRIS berhasil diunduh.");
+    } catch {
+      toast.error("QRIS belum berhasil diunduh. Silakan coba lagi.");
+    } finally {
+      setIsDownloadingQris(false);
+    }
   };
 
   if (status === "PAID") {
@@ -154,10 +171,8 @@ export function PaymentSubmissionForm({
               </p>
             </div>
           </div>
-          <Button asChild variant="outline" className="min-h-11 w-full max-w-64">
-            <a href="/qris.jpeg" download="QRIS-MyKontrakans.jpeg">
-              <Download className="size-4" /> Unduh QRIS
-            </a>
+          <Button type="button" variant="outline" className="min-h-11 w-full max-w-64" onClick={downloadQris} disabled={isDownloadingQris}>
+            <Download className="size-4" /> {isDownloadingQris ? "Mengunduh..." : "Unduh QRIS"}
           </Button>
           <div className="text-center space-y-1">
             <p className="text-xs text-muted-foreground">Total Pembayaran</p>

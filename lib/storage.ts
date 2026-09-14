@@ -45,31 +45,45 @@ async function persistImage(file: File, folder: string): Promise<UploadedFileRes
 
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (token) {
-    const blob = await put(filename, file, {
-      access: "public",
-      token,
-    });
-    return {
-      url: blob.url,
-      mimeType: file.type,
-      size: file.size,
-    };
+    try {
+      const blob = await put(filename, file, {
+        access: "public",
+        token,
+      });
+      return {
+        url: blob.url,
+        mimeType: file.type,
+        size: file.size,
+      };
+    } catch (error) {
+      console.error("Blob image upload failed", error instanceof Error ? error.name : "UnknownError");
+      throw new BusinessError("Upload gambar belum berhasil. Periksa konfigurasi Vercel Blob atau coba lagi.");
+    }
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new BusinessError("Penyimpanan gambar belum dikonfigurasi. Admin perlu menambahkan BLOB_READ_WRITE_TOKEN.");
   }
 
   // Fallback for local development when BLOB_READ_WRITE_TOKEN is not configured
   const uploadsDir = join(process.cwd(), "public", "uploads", folder);
-  await mkdir(uploadsDir, { recursive: true });
+  try {
+    await mkdir(uploadsDir, { recursive: true });
 
-  const localFileName = `${Date.now()}-${uniqueId}.${extension}`;
-  const localFilePath = join(uploadsDir, localFileName);
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(localFilePath, buffer);
+    const localFileName = `${Date.now()}-${uniqueId}.${extension}`;
+    const localFilePath = join(uploadsDir, localFileName);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(localFilePath, buffer);
 
-  return {
-    url: `/uploads/${folder}/${localFileName}`,
-    mimeType: file.type,
-    size: file.size,
-  };
+    return {
+      url: `/uploads/${folder}/${localFileName}`,
+      mimeType: file.type,
+      size: file.size,
+    };
+  } catch (error) {
+    console.error("Local image upload failed", error instanceof Error ? error.name : "UnknownError");
+    throw new BusinessError("Folder upload lokal tidak dapat ditulis. Periksa izin folder aplikasi.");
+  }
 }
 
 export async function uploadEvidenceFile(file: File, folder = "evidence"): Promise<UploadedFileResult> {

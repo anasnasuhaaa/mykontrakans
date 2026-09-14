@@ -16,6 +16,7 @@ export function AvatarUploadForm({ name, avatarUrl }: { name: string; avatarUrl?
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     async (previousState, form) => {
       const nextState = await updateProfileAvatar(previousState, form);
+      if (nextState.message) (nextState.success ? toast.success : toast.error)(nextState.message);
       if (nextState.success) {
         setPreviewUrl(null);
         setSelected(false);
@@ -25,11 +26,6 @@ export function AvatarUploadForm({ name, avatarUrl }: { name: string; avatarUrl?
     },
     initialActionState,
   );
-
-  useEffect(() => {
-    if (!state.message) return;
-    (state.success ? toast.success : toast.error)(state.message);
-  }, [state]);
 
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
