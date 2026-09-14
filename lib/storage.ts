@@ -44,11 +44,12 @@ async function persistImage(file: File, folder: string): Promise<UploadedFileRes
   const filename = `${folder}/${Date.now()}-${uniqueId}.${extension}`;
 
   const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (token) {
+  const storeId = process.env.BLOB_STORE_ID;
+  if (token || storeId) {
     try {
       const blob = await put(filename, file, {
         access: "public",
-        token,
+        ...(token ? { token } : {}),
       });
       return {
         url: blob.url,
@@ -57,12 +58,14 @@ async function persistImage(file: File, folder: string): Promise<UploadedFileRes
       };
     } catch (error) {
       console.error("Blob image upload failed", error instanceof Error ? error.name : "UnknownError");
-      throw new BusinessError("Upload gambar belum berhasil. Periksa konfigurasi Vercel Blob atau coba lagi.");
+      if (process.env.NODE_ENV === "production") {
+        throw new BusinessError("Upload gambar ke Vercel Blob belum berhasil. Periksa koneksi Blob Store dan OIDC project.");
+      }
     }
   }
 
   if (process.env.NODE_ENV === "production") {
-    throw new BusinessError("Penyimpanan gambar belum dikonfigurasi. Admin perlu menambahkan BLOB_READ_WRITE_TOKEN.");
+    throw new BusinessError("Penyimpanan gambar belum dikonfigurasi. Hubungkan Vercel Blob Store ke project.");
   }
 
   // Fallback for local development when BLOB_READ_WRITE_TOKEN is not configured
