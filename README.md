@@ -12,7 +12,8 @@
   - **Anggota (Member):** Melihat kewajiban kas bulanan, scan QRIS, upload bukti pembayaran, melihat riwayat status approval, dan transparansi arus kas kontrakan.
 
 - **Sistem Pembayaran & Tagihan Kas Bulanan:**
-  - Pembuatan tagihan bulanan otomatis untuk seluruh anggota aktif dengan tanggal jatuh tempo fleksibel.
+  - Pembuatan tagihan bulanan oleh Admin/Bendahara dengan pilihan nama anggota aktif yang wajib membayar.
+  - Pelunasan manual melalui tunai atau transfer bank, lengkap dengan tanggal pembayaran dan catatan; pemasukan kas dicatat otomatis tanpa duplikasi review QRIS.
   - Tampilan tagihan mobile-first dengan scan dan download QRIS (`/public/qris.jpeg`).
   - Unggah screenshot bukti transfer (format JPG, PNG, WEBP maks. 2 MB) dengan preview instan.
   - Alur verifikasi (Approve / Reject dengan alasan penolakan wajib) dan dukungan unggah ulang jika ditolak.
@@ -129,5 +130,7 @@ npm run build
 - Password disimpan menggunakan hashing **bcrypt** (salt rounds 12).
 - Session dikelola menggunakan token acak 256-bit (`crypto.randomBytes(32)`) yang disimpan secara ter-hash SHA-256 di database dengan cookie `HttpOnly`, `SameSite: Lax`, dan `Secure` di production.
 - Rate limiting berbasis database untuk mencegah serangan brute force pada login.
+- Reset password melalui **Lupa password?** pada halaman masuk: tautan email sekali pakai berlaku 30 menit, maksimal 3 permintaan per email dalam 15 menit, dan sesi lama diakhiri setelah password diganti.
+- Reset password memerlukan `RESEND_API_KEY`, `EMAIL_FROM`, dan `NEXT_PUBLIC_APP_URL` yang sesuai. Jalankan `npm run db:migrate` sebelum menjalankan versi ini untuk menambahkan tabel token reset dan relasi pelunasan manual.
 - Validasi ketat di sisi server (Server Actions) menggunakan Zod schema sebelum mengeksekusi mutasi database.
 - Proteksi route di lapisan server menggunakan `proxy.ts` dan fungsi otorisasi `requireUser(roles)`.

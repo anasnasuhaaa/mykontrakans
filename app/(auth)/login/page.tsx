@@ -1,4 +1,5 @@
 import { ArrowUpRight, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import { login } from "@/app/actions/auth";
 import { ActionForm } from "@/components/action-form";
 import { BrandLogo } from "@/components/brand-logo";
@@ -23,6 +24,7 @@ export default function LoginPage() {
           <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" autoComplete="email" placeholder="nama@email.com" required className="h-12" /></div>
           <PasswordField label="Password" name="password" autoComplete="current-password" required className="h-12" />
         </ActionForm>
+        <Link href="/forgot-password" className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline">Lupa password?</Link>
         <p className="mt-6 text-sm leading-relaxed text-muted-foreground">Belum punya akses? Minta undangan dari Admin kontrakan.</p>
       </div>
       <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground"><ShieldCheck className="size-4" /> Akses khusus anggota kontrakan</p>

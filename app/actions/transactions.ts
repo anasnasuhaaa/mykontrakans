@@ -111,7 +111,7 @@ export async function updateTransaction(_state: ActionState, form: FormData): Pr
     if (!existing) {
       throw new BusinessError("Transaksi tidak ditemukan.");
     }
-    if (existing.relatedPaymentId) {
+    if (existing.relatedPaymentId || existing.relatedBillId) {
       throw new BusinessError("Transaksi otomatis dari pembayaran kas tidak dapat diedit manual.");
     }
     if (!category) {
@@ -135,7 +135,7 @@ export async function updateTransaction(_state: ActionState, form: FormData): Pr
       if (!editable) {
         throw new BusinessError("Transaksi tidak ditemukan.");
       }
-      if (editable.relatedPaymentId) {
+      if (editable.relatedPaymentId || editable.relatedBillId) {
         throw new BusinessError("Transaksi otomatis dari pembayaran kas tidak dapat diedit manual.");
       }
 
@@ -199,7 +199,7 @@ export async function deleteTransaction(_state: ActionState, form: FormData): Pr
         throw new BusinessError("Transaksi tidak ditemukan.");
       }
 
-      if (existing.relatedPaymentId) {
+      if (existing.relatedPaymentId || existing.relatedBillId) {
         throw new BusinessError("Transaksi otomatis dari pembayaran kas tidak dapat dihapus manual.");
       }
 

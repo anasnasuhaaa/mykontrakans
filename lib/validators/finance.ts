@@ -1,4 +1,16 @@
 import { z } from "zod";
+import { getJakartaDate } from "@/lib/dates";
+
+export const manualPaymentSchema = z.object({
+  billId: z.string().min(1, "Tagihan tidak ditemukan.").max(100),
+  method: z.enum(["CASH", "BANK_TRANSFER"], { error: "Pilih metode pembayaran." }),
+  paymentDate: z.iso.date("Tanggal pembayaran tidak valid.").refine((value) => {
+    const now = getJakartaDate();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    return value <= today;
+  }, "Tanggal pembayaran tidak boleh di masa depan."),
+  note: z.string().trim().max(255, "Catatan maksimal 255 karakter.").default(""),
+});
 
 export const amountSchema = z.coerce
   .number()

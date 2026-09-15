@@ -17,6 +17,7 @@ export default async function HistoryPage() {
       orderBy: { createdAt: "desc" },
       include: {
         billingPeriod: true,
+        manualPayment: { select: { transactionDate: true, createdBy: { select: { name: true } } } },
         submissions: {
           orderBy: { createdAt: "desc" },
           take: 1,
@@ -100,7 +101,8 @@ export default async function HistoryPage() {
                       Jatuh tempo: {formatJakartaDate(bill.billingPeriod.dueDate)}
                       {sub?.reviewedAt && ` · Diverifikasi: ${formatJakartaDate(new Date(sub.reviewedAt))}`}
                     </p>
-                    {sub?.rejectionReason && (
+                    {bill.manualPayment && <p className="text-xs text-muted-foreground">Dicatat lunas manual oleh {bill.manualPayment.createdBy.name} · {formatJakartaDate(bill.manualPayment.transactionDate)}</p>}
+                    {isRejected && sub?.rejectionReason && (
                       <p className="text-xs text-destructive">
                         Catatan: {sub.rejectionReason}
                       </p>

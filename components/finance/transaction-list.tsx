@@ -32,6 +32,7 @@ export type TransactionRecord = {
   transactionDate: Date;
   receiptPath?: string | null;
   relatedPaymentId?: string | null;
+  relatedBillId?: string | null;
   category: {
     id: string;
     name: string;
@@ -150,7 +151,7 @@ export function TransactionList({
                       <Badge variant="outline" className="text-xs">
                         {tx.category.name}
                       </Badge>
-                      {tx.relatedPaymentId && (
+                      {(tx.relatedPaymentId || tx.relatedBillId) && (
                         <Badge variant="secondary" className="text-[10px]">
                           Kas Anggota
                         </Badge>
@@ -187,7 +188,7 @@ export function TransactionList({
                       </Button>
                     )}
 
-                    {canManage && !tx.relatedPaymentId && (
+                    {canManage && !tx.relatedPaymentId && !tx.relatedBillId && (
                       <>
                         <TransactionForm categories={categories} transaction={tx} />
                         <ConfirmAction

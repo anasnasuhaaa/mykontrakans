@@ -29,6 +29,7 @@ export async function saveMember(_state: ActionState, form: FormData): Promise<A
       if (previous && (previous.email !== input.email || previous.role !== input.role)) {
         await tx.session.deleteMany({ where: { userId: id } });
         await tx.onboardingToken.deleteMany({ where: { userId: id } });
+        await tx.passwordResetToken.deleteMany({ where: { userId: id } });
       }
       await tx.auditLog.create({ data: { actorId: actor.id, action: id ? "MEMBER_UPDATED" : "MEMBER_CREATED", entityType: "User", entityId: member.id, metadata: { role: input.role } } });
       return member;
@@ -57,6 +58,7 @@ export async function toggleMember(_state: ActionState, form: FormData): Promise
       await tx.user.update({ where: { id }, data: { isActive: !user.isActive } });
       await tx.session.deleteMany({ where: { userId: id } });
       await tx.onboardingToken.deleteMany({ where: { userId: id } });
+      await tx.passwordResetToken.deleteMany({ where: { userId: id } });
       await tx.auditLog.create({ data: { actorId: actor.id, action: "MEMBER_STATUS_CHANGED", entityType: "User", entityId: id } });
       return !user.isActive;
     }, { isolationLevel: "Serializable" });
@@ -87,6 +89,7 @@ export async function deleteMember(_state: ActionState, form: FormData): Promise
         select: { id: true },
       });
       const ownedBillIds = ownedBills.map((bill) => bill.id);
+      await tx.transaction.deleteMany({ where: { relatedBillId: { in: ownedBillIds } } });
       const ownedSubmissions = await tx.paymentSubmission.findMany({
         where: { billId: { in: ownedBillIds } },
         select: { id: true },

@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { formatJakartaMonthYear, formatJakartaDate, getBillDisplayStatus, getJakartaDate } from "@/lib/dates";
 import { formatRupiah } from "@/lib/utils";
 import { BillingGenerator } from "@/components/billing/billing-generator";
+import { ManualPaymentForm } from "@/components/billing/manual-payment-form";
 import { ConfirmAction } from "@/components/confirm-action";
 import { deleteBillingPeriod } from "@/app/actions/billing";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,12 @@ export default async function BillsPage() {
   const currentMonth = nowJkt.getMonth() + 1;
 
   const db = getDb();
+  const eligibleMembers = isFinance ? await db.user.findMany({
+    where: { isActive: true, role: { not: "ADMIN" } },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: "asc" },
+  }) : [];
+  const today = `${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(nowJkt.getDate()).padStart(2, "0")}`;
   const periods = await db.billingPeriod.findMany({
     orderBy: [{ year: "desc" }, { month: "desc" }],
     include: {
@@ -27,6 +34,7 @@ export default async function BillsPage() {
         where: { member: { role: { not: "ADMIN" } } },
         include: {
           member: { select: { id: true, name: true, email: true, avatarUrl: true } },
+          manualPayment: { select: { id: true } },
           submissions: {
             orderBy: { createdAt: "desc" },
             take: 1,
@@ -44,7 +52,7 @@ export default async function BillsPage() {
           <p className="page-eyebrow">Keuangan bersama</p>
           <h1 className="page-title">Tagihan kas bulanan</h1>
         </div>
-        {isFinance && <BillingGenerator defaultYear={currentYear} defaultMonth={currentMonth} />}
+        {isFinance && <BillingGenerator defaultYear={currentYear} defaultMonth={currentMonth} members={eligibleMembers} />}
       </header>
 
       {periods.length === 0 ? (
@@ -116,7 +124,7 @@ export default async function BillsPage() {
                           <p className="text-2xl font-bold tracking-tight">{formatRupiah(myBill.amount)}</p>
                           <div className="mt-2 flex items-center gap-2">
                             <Badge variant={myStatus?.variant}>{myStatus?.label}</Badge>
-                            {latestSub?.rejectionReason && (
+                            {myBill.status === "REJECTED" && latestSub?.rejectionReason && (
                               <p className="text-xs text-destructive">
                                 Alasan penolakan: {latestSub.rejectionReason}
                               </p>
@@ -163,9 +171,11 @@ export default async function BillsPage() {
                                 <p className="truncate text-xs text-muted-foreground">{bill.member.email}</p>
                               </div>
                             </div>
-                            <div className="ml-[52px] flex w-full items-center justify-between gap-3 sm:ml-0 sm:w-auto sm:justify-end">
+                            <div className="ml-[52px] flex w-full flex-wrap items-center justify-between gap-3 sm:ml-0 sm:w-auto sm:justify-end">
                               <span className="text-sm font-medium">{formatRupiah(bill.amount)}</span>
                               <Badge variant={status.variant}>{status.label}</Badge>
+                              {bill.manualPayment && <span className="text-xs text-muted-foreground">Dicatat manual</span>}
+                              {isFinance && bill.status !== "PAID" && <ManualPaymentForm billId={bill.id} memberName={bill.member.name} amount={bill.amount} today={today} pendingReview={bill.status === "PENDING_REVIEW"} />}
                             </div>
                           </div>
                         );

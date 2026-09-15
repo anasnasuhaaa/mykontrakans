@@ -8,6 +8,7 @@ import { actionError, BusinessError, type ActionState } from "@/lib/actions";
 import { uploadEvidenceFile } from "@/lib/storage";
 import { notifySafely } from "@/lib/email";
 import { formatRupiah } from "@/lib/utils";
+import { manualPaymentSchema } from "@/lib/validators/finance";
 
 const rejectSchema = z.object({
   submissionId: z.string().min(1, "ID bukti transfer tidak ditemukan."),
@@ -61,6 +62,11 @@ export async function submitPaymentEvidence(_state: ActionState, form: FormData)
     const uploaded = await uploadEvidenceFile(file, "payment-evidence");
 
     await db.$transaction(async (tx) => {
+      const claimed = await tx.memberBill.updateMany({
+        where: { id: bill.id, status: { in: ["UNPAID", "REJECTED"] } },
+        data: { status: "PENDING_REVIEW" },
+      });
+      if (claimed.count !== 1) throw new BusinessError("Status tagihan sudah berubah. Muat ulang halaman.");
       // Create new payment submission
       const submission = await tx.paymentSubmission.create({
         data: {
@@ -68,14 +74,6 @@ export async function submitPaymentEvidence(_state: ActionState, form: FormData)
           memberId: actor.id,
           evidencePath: uploaded.url,
           evidenceType: uploaded.mimeType,
-          status: "PENDING_REVIEW",
-        },
-      });
-
-      // Update bill status to PENDING_REVIEW
-      await tx.memberBill.update({
-        where: { id: bill.id },
-        data: {
           status: "PENDING_REVIEW",
         },
       });
@@ -156,6 +154,11 @@ export async function approvePaymentSubmission(_state: ActionState, form: FormDa
     }
 
     await db.$transaction(async (tx) => {
+      const claimed = await tx.memberBill.updateMany({
+        where: { id: bill.id, status: "PENDING_REVIEW" },
+        data: { status: "PAID" },
+      });
+      if (claimed.count !== 1) throw new BusinessError("Status tagihan sudah berubah. Muat ulang halaman.");
       // Find or create Uang Kas category
       let category = await tx.financialCategory.findFirst({
         where: {
@@ -177,22 +180,15 @@ export async function approvePaymentSubmission(_state: ActionState, form: FormDa
       }
 
       // 1. Mark submission approved (status: PAID)
-      await tx.paymentSubmission.update({
-        where: { id: submission.id },
+      const reviewed = await tx.paymentSubmission.updateMany({
+        where: { id: submission.id, status: "PENDING_REVIEW" },
         data: {
           status: "PAID",
           reviewerId: actor.id,
           reviewedAt: new Date(),
         },
       });
-
-      // 2. Mark bill paid
-      await tx.memberBill.update({
-        where: { id: bill.id },
-        data: {
-          status: "PAID",
-        },
-      });
+      if (reviewed.count !== 1) throw new BusinessError("Pengajuan ini sudah diproses sebelumnya.");
 
       // 3. Create unique income transaction
       await tx.transaction.create({
@@ -285,9 +281,14 @@ export async function rejectPaymentSubmission(_state: ActionState, form: FormDat
     const bill = submission.bill;
 
     await db.$transaction(async (tx) => {
+      const claimed = await tx.memberBill.updateMany({
+        where: { id: bill.id, status: "PENDING_REVIEW" },
+        data: { status: "REJECTED" },
+      });
+      if (claimed.count !== 1) throw new BusinessError("Status tagihan sudah berubah. Muat ulang halaman.");
       // 1. Mark submission rejected
-      await tx.paymentSubmission.update({
-        where: { id: submission.id },
+      const reviewed = await tx.paymentSubmission.updateMany({
+        where: { id: submission.id, status: "PENDING_REVIEW" },
         data: {
           status: "REJECTED",
           rejectionReason: parsed.reason,
@@ -295,14 +296,7 @@ export async function rejectPaymentSubmission(_state: ActionState, form: FormDat
           reviewedAt: new Date(),
         },
       });
-
-      // 2. Mark bill rejected
-      await tx.memberBill.update({
-        where: { id: bill.id },
-        data: {
-          status: "REJECTED",
-        },
-      });
+      if (reviewed.count !== 1) throw new BusinessError("Pengajuan ini sudah diproses sebelumnya.");
 
       // 3. Audit log
       await tx.auditLog.create({
@@ -340,6 +334,62 @@ export async function rejectPaymentSubmission(_state: ActionState, form: FormDat
       success: true,
       message: `Pembayaran ${bill.member.name} ditolak. Notifikasi telah dikirim ke anggota.`,
     };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function settleBillManually(_state: ActionState, form: FormData): Promise<ActionState> {
+  const actor = await requireUser(financeRoles);
+  try {
+    const input = manualPaymentSchema.parse(Object.fromEntries(form));
+    const bill = await getDb().$transaction(async (tx) => {
+      const bill = await tx.memberBill.findUnique({
+        where: { id: input.billId },
+        include: { billingPeriod: true, member: { select: { id: true, name: true, email: true, role: true } } },
+      });
+      if (!bill) throw new BusinessError("Tagihan tidak ditemukan.");
+      if (bill.member.role === "ADMIN") throw new BusinessError("Admin tidak dikenai tagihan kas.");
+      const claimed = await tx.memberBill.updateMany({
+        where: { id: bill.id, status: { in: ["UNPAID", "REJECTED", "PENDING_REVIEW"] } },
+        data: { status: "PAID" },
+      });
+      if (claimed.count !== 1) throw new BusinessError("Tagihan sudah lunas atau sedang diperbarui. Muat ulang halaman.");
+      let category = await tx.financialCategory.findFirst({
+        where: { OR: [{ systemKey: "MONTHLY_DUES" }, { name: "Uang Kas", type: "INCOME" }] },
+      });
+      if (!category) category = await tx.financialCategory.create({
+        data: { name: "Uang Kas", type: "INCOME", systemKey: "MONTHLY_DUES" },
+      });
+      const methodLabel = input.method === "CASH" ? "Tunai" : "Transfer bank";
+      const transaction = await tx.transaction.create({
+        data: {
+          type: "INCOME", categoryId: category.id, amount: bill.amount,
+          description: `Iuran kas ${bill.billingPeriod.month}/${bill.billingPeriod.year} — ${bill.member.name} (${methodLabel})`,
+          transactionDate: new Date(`${input.paymentDate}T00:00:00.000Z`),
+          createdById: actor.id, relatedBillId: bill.id,
+        },
+      });
+      // Close queued evidence so it cannot later create a second income entry.
+      await tx.paymentSubmission.updateMany({
+        where: { billId: bill.id, status: "PENDING_REVIEW" },
+        data: { status: "REJECTED", rejectionReason: "Tagihan telah dilunasi secara manual; bukti ini tidak digunakan.", reviewerId: actor.id, reviewedAt: new Date() },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: actor.id, action: "BILL_PAID_MANUALLY", entityType: "MemberBill", entityId: bill.id,
+          metadata: { transactionId: transaction.id, memberId: bill.memberId, amount: bill.amount, method: input.method, paymentDate: input.paymentDate, note: input.note },
+        },
+      });
+      return bill;
+    }, { isolationLevel: "Serializable" });
+    await notifySafely({
+      to: bill.member.email, name: bill.member.name, subject: "Pembayaran Kas Dicatat",
+      message: `Pembayaran kas periode ${bill.billingPeriod.month}/${bill.billingPeriod.year} sebesar ${formatRupiah(bill.amount)} telah dicatat secara manual oleh ${actor.name}. Status tagihan: LUNAS.`,
+      button: "Lihat tagihan", link: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/bills`,
+    });
+    for (const path of ["/bills", `/bills/${bill.id}/pay`, "/dashboard", "/payments/review", "/transactions", "/history"]) revalidatePath(path);
+    return { success: true, message: `Pembayaran ${bill.member.name} dicatat lunas dan masuk ke kas.` };
   } catch (error) {
     return actionError(error);
   }

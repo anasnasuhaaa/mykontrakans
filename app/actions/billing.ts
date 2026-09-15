@@ -20,6 +20,9 @@ export async function generateBillingPeriod(_state: ActionState, form: FormData)
     const nowJkt = getJakartaDate();
     const year = rawYear ? generateSchema.shape.year.parse(rawYear) : nowJkt.getFullYear();
     const month = rawMonth ? generateSchema.shape.month.parse(rawMonth) : nowJkt.getMonth() + 1;
+    const memberIds = [...new Set(z.array(z.string().min(1).max(100))
+      .min(1, "Pilih minimal satu anggota yang perlu membayar.").max(500)
+      .parse(form.getAll("memberIds")))];
 
     const db = getDb();
     const settings = (await db.appSetting.findUnique({ where: { id: "default" } })) || {
@@ -41,12 +44,12 @@ export async function generateBillingPeriod(_state: ActionState, form: FormData)
       }
 
       const activeMembers = await tx.user.findMany({
-        where: { isActive: true, role: { not: "ADMIN" } },
+        where: { id: { in: memberIds }, isActive: true, role: { not: "ADMIN" } },
         select: { id: true },
       });
 
-      if (activeMembers.length === 0) {
-        throw new BusinessError("Tidak ada Bendahara atau Anggota aktif untuk dibuatkan tagihan.");
+      if (activeMembers.length !== memberIds.length) {
+        throw new BusinessError("Pilihan anggota berubah atau tidak valid. Muat ulang dan pilih anggota aktif kembali.");
       }
 
       const period = await tx.billingPeriod.create({
@@ -72,7 +75,7 @@ export async function generateBillingPeriod(_state: ActionState, form: FormData)
           action: "BILLING_PERIOD_GENERATED",
           entityType: "BillingPeriod",
           entityId: period.id,
-          metadata: { year, month, memberCount: activeMembers.length },
+          metadata: { year, month, memberCount: activeMembers.length, memberIds },
         },
       });
     }, { isolationLevel: "Serializable" });

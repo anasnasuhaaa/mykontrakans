@@ -44,6 +44,7 @@ model User {
   updatedAt    DateTime            @updatedAt
   sessions     Session[]
   onboarding   OnboardingToken?
+  passwordReset PasswordResetToken?
   bills        MemberBill[]
   submissions  PaymentSubmission[] @relation("Submitter")
   reviews      PaymentSubmission[] @relation("Reviewer")
@@ -94,6 +95,17 @@ model FinancialCategory {
   @@unique([name, type])
 }
 
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
 model BillingPeriod {
   id              String       @id @default(cuid())
   month           Int
@@ -119,6 +131,7 @@ model MemberBill {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   submissions     PaymentSubmission[]
+  manualPayment   Transaction? @relation("ManualBillPayment")
 
   @@unique([memberId, billingPeriodId])
   @@index([billingPeriodId, status])
@@ -156,6 +169,8 @@ model Transaction {
   createdBy        User               @relation(fields: [createdById], references: [id], onDelete: Restrict)
   relatedPaymentId String?            @unique
   relatedPayment   PaymentSubmission? @relation(fields: [relatedPaymentId], references: [id], onDelete: Restrict)
+  relatedBillId    String?            @unique
+  relatedBill      MemberBill?        @relation("ManualBillPayment", fields: [relatedBillId], references: [id], onDelete: Restrict)
   receiptPath      String?
   receiptType      String?
   createdAt        DateTime           @default(now())
