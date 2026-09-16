@@ -35,7 +35,7 @@ moduleLoader._load = function (id, ...args) {
   return originalLoad.call(this, id, ...args);
 };
 const loadAction = createRequire(import.meta.url);
-const { generateBillingPeriod } = loadAction("../app/actions/billing.ts") as typeof import("../app/actions/billing");
+const { generateBillingPeriod, addMembersToBillingPeriod } = loadAction("../app/actions/billing.ts") as typeof import("../app/actions/billing");
 const { settleBillManually, approvePaymentSubmission, rejectPaymentSubmission } = loadAction("../app/actions/payments.ts") as typeof import("../app/actions/payments");
 const { requestPasswordReset, resetPassword } = loadAction("../app/actions/password-reset.ts") as typeof import("../app/actions/password-reset");
 const { updateTransaction, deleteTransaction } = loadAction("../app/actions/transactions.ts") as typeof import("../app/actions/transactions");
@@ -86,6 +86,81 @@ test("period rejects no selection, inactive/unknown IDs and member role", async 
   }
   role = "MEMBER";
   await assert.rejects(generateBillingPeriod({}, form({ memberIds: ["member-a"] })), /Forbidden/);
+});
+
+function addPeriodMembersFixture({
+  eligible = ["member-a", "member-b"],
+  existing = ["member-a"],
+  periodExists = true,
+}: {
+  eligible?: string[];
+  existing?: string[];
+  periodExists?: boolean;
+} = {}) {
+  const created: { memberId: string; billingPeriodId: string; amount: number; status: string }[] = [];
+  const tx = {
+    user: { findMany: async ({ where }: { where: { id: { in: string[] }; isActive: boolean; role: { not: string } } }) => {
+      assert.equal(where.isActive, true);
+      assert.equal(where.role.not, "ADMIN");
+      return eligible.filter((id) => where.id.in.includes(id)).map((id) => ({ id }));
+    } },
+    billingPeriod: {
+      findUnique: async ({ where }: { where: { id: string } }) => {
+        assert.equal(where.id, "period-old");
+        return periodExists
+          ? { id: "period-old", year: 2026, month: 8, amountPerMember: 125000, bills: existing.map((memberId) => ({ memberId })) }
+          : null;
+      },
+    },
+    memberBill: {
+      createMany: async ({ data }: { data: typeof created }) => {
+        created.push(...data);
+        return { count: data.length };
+      },
+    },
+    auditLog: { create: async () => ({}) },
+  };
+  database = { ...tx, $transaction: async (run: (value: typeof tx) => unknown) => run(tx) };
+  return { created };
+}
+
+test("finance roles can add newly created members to an existing period using its original amount", async () => {
+  for (const financeRole of ["ADMIN", "TREASURER"]) {
+    role = financeRole;
+    const fixture = addPeriodMembersFixture();
+    const result = await addMembersToBillingPeriod({}, form({
+      periodId: "period-old",
+      memberIds: ["member-a", "member-b", "member-b"],
+    }));
+
+    assert.equal(result.success, true);
+    assert.deepEqual(fixture.created, [{
+      memberId: "member-b",
+      billingPeriodId: "period-old",
+      amount: 125000,
+      status: "UNPAID",
+    }]);
+  }
+});
+
+test("adding period members rejects missing periods, invalid selections, duplicates and member role", async () => {
+  let fixture = addPeriodMembersFixture({ periodExists: false });
+  assert.equal((await addMembersToBillingPeriod({}, form({ periodId: "period-old", memberIds: ["member-b"] }))).success, false);
+  assert.equal(fixture.created.length, 0);
+
+  fixture = addPeriodMembersFixture({ eligible: ["member-a"] });
+  assert.equal((await addMembersToBillingPeriod({}, form({ periodId: "period-old", memberIds: ["member-b"] }))).success, false);
+  assert.equal(fixture.created.length, 0);
+
+  fixture = addPeriodMembersFixture();
+  assert.equal((await addMembersToBillingPeriod({}, form({ periodId: "period-old", memberIds: ["member-a"] }))).success, false);
+  assert.equal(fixture.created.length, 0);
+
+  role = "MEMBER";
+  await assert.rejects(
+    addMembersToBillingPeriod({}, form({ periodId: "period-old", memberIds: ["member-b"] })),
+    /Forbidden/,
+  );
 });
 
 function paymentFixture(initialStatus = "UNPAID", staleReview = false) {

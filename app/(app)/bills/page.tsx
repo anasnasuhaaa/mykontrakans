@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { formatJakartaMonthYear, formatJakartaDate, getBillDisplayStatus, getJakartaDate } from "@/lib/dates";
 import { formatRupiah } from "@/lib/utils";
 import { BillingGenerator } from "@/components/billing/billing-generator";
+import { BillingPeriodMemberAdder } from "@/components/billing/billing-period-member-adder";
 import { ManualPaymentForm } from "@/components/billing/manual-payment-form";
 import { ConfirmAction } from "@/components/confirm-action";
 import { deleteBillingPeriod } from "@/app/actions/billing";
@@ -75,6 +76,9 @@ export default async function BillsPage() {
             const totalCount = period.bills.length;
             const myStatus = myBill ? getBillDisplayStatus(myBill.status, period.dueDate) : null;
             const latestSub = myBill?.submissions[0];
+            const periodLabel = formatJakartaMonthYear(period.year, period.month);
+            const billedMemberIds = new Set(period.bills.map((bill) => bill.memberId));
+            const missingMembers = eligibleMembers.filter((member) => !billedMemberIds.has(member.id));
 
             return (
               <Card key={period.id} className="overflow-hidden rounded-2xl">
@@ -82,7 +86,7 @@ export default async function BillsPage() {
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                       <CardTitle className="text-xl">
-                        {formatJakartaMonthYear(period.year, period.month)}
+                        {periodLabel}
                       </CardTitle>
                       <CardDescription className="mt-1">
                         Jatuh tempo: {formatJakartaDate(period.dueDate)} · {formatRupiah(period.amountPerMember)} / anggota
@@ -101,6 +105,13 @@ export default async function BillsPage() {
                           style={{ width: `${totalCount > 0 ? (paidCount / totalCount) * 100 : 0}%` }}
                         />
                       </div>
+                      {isFinance && missingMembers.length > 0 && (
+                        <BillingPeriodMemberAdder
+                          periodId={period.id}
+                          periodLabel={periodLabel}
+                          members={missingMembers}
+                        />
+                      )}
                       {isFinance && (
                         <ConfirmAction
                           action={deleteBillingPeriod}
